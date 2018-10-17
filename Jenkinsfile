@@ -134,7 +134,7 @@ def mavenBuild(jdk, cmdline, mvnName, junitPublishDisabled) {
       mavenOpts: mavenOpts,
       mavenLocalRepo: localRepo) {
     // Some common Maven command line + provided command line
-    sh "mvn -Pci -V -B -T3 -e -Dmaven.test.failure.ignore=true -Djetty.testtracker.log=true $cmdline -Dunix.socket.tmp=" + env.JENKINS_HOME
+    sh "mvn  -Powasp -Pci -V -B -T3 -e -Dmaven.test.failure.ignore=true -Djetty.testtracker.log=true $cmdline -Dunix.socket.tmp=" + env.JENKINS_HOME
   }
 }
 

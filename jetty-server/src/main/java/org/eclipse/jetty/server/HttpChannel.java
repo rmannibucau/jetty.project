@@ -505,7 +505,8 @@ public class HttpChannel implements Runnable, HttpOutput.Interceptor
                                 if (hasContent && !_response.isContentComplete(_response.getHttpOutput().getWritten()))
                                     sendErrorOrAbort("Insufficient content written");
                             }
-                            prepareUpgrade();
+                            // TODO: why tryUpgrade() is before closeOutput()? Add a comment for clarity.
+                            tryUpgrade();
                             _response.closeOutput();
                         }
                         finally
@@ -751,7 +752,7 @@ public class HttpChannel implements Runnable, HttpOutput.Interceptor
         return result;
     }
 
-    protected void prepareUpgrade()
+    protected void tryUpgrade()
     {
     }
 

@@ -18,14 +18,14 @@
 
 package org.eclipse.jetty.websocket.common.handshake;
 
-import org.eclipse.jetty.websocket.api.UpgradeRequest;
-import org.eclipse.jetty.websocket.api.extensions.ExtensionConfig;
-
 import java.net.HttpCookie;
 import java.net.URI;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
+
+import org.eclipse.jetty.websocket.api.UpgradeRequest;
+import org.eclipse.jetty.websocket.api.extensions.ExtensionConfig;
 
 public class DummyUpgradeRequest implements UpgradeRequest
 {
@@ -181,24 +181,6 @@ public class DummyUpgradeRequest implements UpgradeRequest
 
     @Override
     public void setHeaders(Map<String, List<String>> headers)
-    {
-
-    }
-
-    @Override
-    public void setHttpVersion(String httpVersion)
-    {
-
-    }
-
-    @Override
-    public void setMethod(String method)
-    {
-
-    }
-
-    @Override
-    public void setRequestURI(URI uri)
     {
 
     }

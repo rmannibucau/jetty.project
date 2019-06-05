@@ -31,6 +31,7 @@ import org.eclipse.jetty.client.HttpExchange;
 import org.eclipse.jetty.client.HttpReceiver;
 import org.eclipse.jetty.client.HttpRequest;
 import org.eclipse.jetty.client.HttpResponse;
+import org.eclipse.jetty.client.HttpUpgrader;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.api.Response;
 import org.eclipse.jetty.http.HttpField;
@@ -98,7 +99,7 @@ public class HttpReceiverOverHTTP2 extends HttpReceiver implements HTTP2Channel.
                 if (isTunnel(exchange))
                 {
                     HttpRequest httpRequest = exchange.getRequest();
-                    ClientHTTP2StreamEndPoint endPoint = new ClientHTTP2StreamEndPoint((IStream)stream);
+                    EndPoint endPoint = new ClientHTTP2StreamEndPoint((IStream)stream);
                     long idleTimeout = httpRequest.getIdleTimeout();
                     if (idleTimeout < 0)
                         idleTimeout = getHttpDestination().getHttpClient().getIdleTimeout();
@@ -107,6 +108,12 @@ public class HttpReceiverOverHTTP2 extends HttpReceiver implements HTTP2Channel.
                         LOG.debug("Successful HTTP2 tunnel on {} via {}", stream, endPoint);
                     ((IStream)stream).setAttachment(endPoint);
                     httpRequest.getConversation().setAttribute(EndPoint.class.getName(), endPoint);
+
+                    // TODO: can we make this similar to the proxy case where the after tunnel
+                    //  logic is done in the onHeaders listener, rather than here?
+                    HttpUpgrader upgrader = (HttpUpgrader)httpRequest.getAttributes().get(HttpUpgrader.class.getName());
+                    if (upgrader != null)
+                        upgrader.upgrade(httpResponse, endPoint);
                 }
 
                 if (responseHeaders(exchange))

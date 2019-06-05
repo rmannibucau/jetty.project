@@ -28,11 +28,14 @@ import java.util.concurrent.atomic.LongAdder;
 import org.eclipse.jetty.client.HttpConnection;
 import org.eclipse.jetty.client.HttpDestination;
 import org.eclipse.jetty.client.HttpExchange;
+import org.eclipse.jetty.client.HttpRequest;
+import org.eclipse.jetty.client.HttpUpgrader;
 import org.eclipse.jetty.client.IConnection;
 import org.eclipse.jetty.client.SendFailure;
 import org.eclipse.jetty.client.api.Connection;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.api.Response;
+import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.io.AbstractConnection;
 import org.eclipse.jetty.io.EndPoint;
 import org.eclipse.jetty.util.Promise;
@@ -254,6 +257,18 @@ public class HttpConnectionOverHTTP extends AbstractConnection implements IConne
 
             // One channel per connection, just delegate the send.
             return send(channel, exchange);
+        }
+
+        @Override
+        protected void normalizeRequest(Request request)
+        {
+            super.normalizeRequest(request);
+            if (request instanceof HttpUpgrader.Factory)
+            {
+                HttpUpgrader upgrader = ((HttpUpgrader.Factory)request).newHttpUpgrader(HttpVersion.HTTP_1_1);
+                request.attribute(HttpUpgrader.class.getName(), upgrader);
+                upgrader.prepare((HttpRequest)request);
+            }
         }
 
         @Override

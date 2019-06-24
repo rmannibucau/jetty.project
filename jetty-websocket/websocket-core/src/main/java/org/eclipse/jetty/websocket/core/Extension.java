@@ -92,4 +92,20 @@ public interface Extension extends IncomingFrames, OutgoingFrames
      * Set the {@link WebSocketCoreSession} for this Extension
      */
     void setWebSocketCoreSession(WebSocketCoreSession coreSession);
+
+    /**
+     * Used to indicate that the extension makes allows auto-fragmentation
+     * of incoming data frames to reduce buffering.
+     *
+     * @return true if extension allows auto-fragmentation.
+     */
+    boolean allowFragmentation();
+
+    /**
+     * Used to indicate if any RSV bits used by this extension should be
+     * copied to the continuation frame if the data frame is auto fragmented.
+     *
+     * @return true if RSV bits should be copied on auto-fragment.
+     */
+    boolean copyRsvBitOnFragment();
 }

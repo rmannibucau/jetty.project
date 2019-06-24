@@ -77,43 +77,34 @@ public abstract class AbstractExtension implements Extension
         return nextOutgoing;
     }
 
-    /**
-     * Used to indicate that the extension makes use of the RSV1 bit of the base websocket framing.
-     * <p>
-     * This is used to adjust validation during parsing, as well as a checkpoint against 2 or more extensions all simultaneously claiming ownership of RSV1.
-     *
-     * @return true if extension uses RSV1 for its own purposes.
-     */
     @Override
     public boolean isRsv1User()
     {
         return false;
     }
 
-    /**
-     * Used to indicate that the extension makes use of the RSV2 bit of the base websocket framing.
-     * <p>
-     * This is used to adjust validation during parsing, as well as a checkpoint against 2 or more extensions all simultaneously claiming ownership of RSV2.
-     *
-     * @return true if extension uses RSV2 for its own purposes.
-     */
     @Override
     public boolean isRsv2User()
     {
         return false;
     }
 
-    /**
-     * Used to indicate that the extension makes use of the RSV3 bit of the base websocket framing.
-     * <p>
-     * This is used to adjust validation during parsing, as well as a checkpoint against 2 or more extensions all simultaneously claiming ownership of RSV3.
-     *
-     * @return true if extension uses RSV3 for its own purposes.
-     */
     @Override
     public boolean isRsv3User()
     {
         return false;
+    }
+
+    @Override
+    public boolean allowFragmentation()
+    {
+        return true;
+    }
+
+    @Override
+    public boolean copyRsvBitOnFragment()
+    {
+        return true;
     }
 
     protected void nextIncomingFrame(Frame frame, Callback callback)

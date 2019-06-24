@@ -78,4 +78,16 @@ public class DeflateFrameExtension extends CompressExtension
             throw new BadPayloadException(e);
         }
     }
+
+    @Override
+    public boolean allowFragmentation()
+    {
+        return false;
+    }
+
+    @Override
+    public boolean copyRsvBitOnFragment()
+    {
+        return false;
+    }
 }

@@ -56,7 +56,7 @@ public class ExtensionStack implements IncomingFrames, OutgoingFrames, Dumpable
     private List<Extension> extensions;
     private IncomingFrames incoming;
     private OutgoingFrames outgoing;
-    private String[] rsvClaims = new String[3];
+    private Extension[] rsvClaims = new Extension[3];
 
     public ExtensionStack(WebSocketExtensionRegistry factory, Behavior behavior)
     {
@@ -199,11 +199,11 @@ public class ExtensionStack implements IncomingFrames, OutgoingFrames, Dumpable
 
             // Record RSV Claims
             if (ext.isRsv1User())
-                rsvClaims[0] = ext.getName();
+                rsvClaims[0] = ext;
             if (ext.isRsv2User())
-                rsvClaims[1] = ext.getName();
+                rsvClaims[1] = ext;
             if (ext.isRsv3User())
-                rsvClaims[2] = ext.getName();
+                rsvClaims[2] = ext;
         }
 
         // Wire up Extensions
@@ -274,6 +274,54 @@ public class ExtensionStack implements IncomingFrames, OutgoingFrames, Dumpable
     {
         return (rsvClaims[2] != null);
     }
+
+    public byte getAllowedRsvBits(byte firstByte)
+    {
+        boolean fin = (firstByte & 0xF0) != 0;
+        if (fin)
+            throw new IllegalArgumentException();
+
+        boolean rsv1 = (firstByte & 0x40) != 0;
+        boolean rsv2 = (firstByte & 0x20) != 0;
+        boolean rsv3 = (firstByte & 0x10) != 0;
+
+        byte allowedRsvs = 0;
+        if (rsv1)
+        {
+            Extension e = rsvClaims[0];
+            if (e == null)
+                return -1; // todo or throw?
+            if (!e.allowFragmentation())
+                return -1;
+            if (e.copyRsvBitOnFragment())
+                allowedRsvs &= 0x40;
+        }
+
+        if (rsv2)
+        {
+            Extension e = rsvClaims[1];
+            if (e == null)
+                return -1; // todo or throw?
+            if (!e.allowFragmentation())
+                return -1;
+            if (e.copyRsvBitOnFragment())
+                allowedRsvs &= 0x20;
+        }
+
+        if (rsv2)
+        {
+            Extension e = rsvClaims[2];
+            if (e == null)
+                return -1; // todo or throw?
+            if (!e.allowFragmentation())
+                return -1;
+            if (e.copyRsvBitOnFragment())
+                allowedRsvs &= 0x10;
+        }
+
+        return allowedRsvs;
+    }
+
 
     @Override
     public String dump()

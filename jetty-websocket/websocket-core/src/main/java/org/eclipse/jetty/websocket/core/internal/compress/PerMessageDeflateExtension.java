@@ -187,6 +187,12 @@ public class PerMessageDeflateExtension extends CompressExtension
     }
 
     @Override
+    public boolean copyRsvBitOnFragment()
+    {
+        return false;
+    }
+
+    @Override
     public String toString()
     {
         return String.format("%s[requested=\"%s\", negotiated=\"%s\"]",

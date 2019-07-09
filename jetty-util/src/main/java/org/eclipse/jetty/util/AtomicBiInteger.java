@@ -47,13 +47,35 @@ public class AtomicBiInteger extends AtomicLong
     {
         return getHi(get());
     }
-    
+
+    /**
+     * Gets a hi value from the given encoded value.
+     *
+     * @param encoded the encoded value
+     * @return the hi value
+     */
+    public static int getHi(long encoded)
+    {
+        return (int)((encoded >> 32) & 0xFFFF_FFFFL);
+    }
+
     /**
      * @return the lo value
      */
     public int getLo()
     {
         return getLo(get());
+    }
+
+    /**
+     * Gets a lo value from the given encoded value.
+     *
+     * @param encoded the encoded value
+     * @return the lo value
+     */
+    public static int getLo(long encoded)
+    {
+        return (int)(encoded & 0xFFFF_FFFFL);
     }
 
     /**
@@ -64,11 +86,11 @@ public class AtomicBiInteger extends AtomicLong
      */
     public int getAndSetHi(int hi)
     {
-        while(true)
+        while (true)
         {
             long encoded = get();
-            long update = encodeHi(encoded,hi);
-            if (compareAndSet(encoded,update))
+            long update = encodeHi(encoded, hi);
+            if (compareAndSet(encoded, update))
                 return getHi(encoded);
         }
     }
@@ -81,15 +103,15 @@ public class AtomicBiInteger extends AtomicLong
      */
     public int getAndSetLo(int lo)
     {
-        while(true)
+        while (true)
         {
             long encoded = get();
-            long update = encodeLo(encoded,lo);
-            if (compareAndSet(encoded,update))
+            long update = encodeLo(encoded, lo);
+            if (compareAndSet(encoded, update))
                 return getLo(encoded);
         }
     }
-    
+
     /**
      * Sets the hi and lo values.
      *
@@ -98,7 +120,7 @@ public class AtomicBiInteger extends AtomicLong
      */
     public void set(int hi, int lo)
     {
-        set(encode(hi,lo));
+        set(encode(hi, lo));
     }
 
     /**
@@ -113,13 +135,13 @@ public class AtomicBiInteger extends AtomicLong
      */
     public boolean compareAndSetHi(int expectHi, int hi)
     {
-        while(true)
+        while (true)
         {
             long encoded = get();
-            if (getHi(encoded)!=expectHi)
+            if (getHi(encoded) != expectHi)
                 return false;
-            long update = encodeHi(encoded,hi);
-            if (compareAndSet(encoded,update))
+            long update = encodeHi(encoded, hi);
+            if (compareAndSet(encoded, update))
                 return true;
         }
     }
@@ -136,13 +158,13 @@ public class AtomicBiInteger extends AtomicLong
      */
     public boolean compareAndSetLo(int expectLo, int lo)
     {
-        while(true)
+        while (true)
         {
             long encoded = get();
-            if (getLo(encoded)!=expectLo)
+            if (getLo(encoded) != expectLo)
                 return false;
-            long update = encodeLo(encoded,lo);
-            if (compareAndSet(encoded,update))
+            long update = encodeLo(encoded, lo);
+            if (compareAndSet(encoded, update))
                 return true;
         }
     }
@@ -159,8 +181,8 @@ public class AtomicBiInteger extends AtomicLong
      */
     public boolean compareAndSet(long encoded, int hi, int lo)
     {
-        long update = encode(hi,lo);
-        return compareAndSet(encoded,update);
+        long update = encode(hi, lo);
+        return compareAndSet(encoded, update);
     }
 
     /**
@@ -176,9 +198,9 @@ public class AtomicBiInteger extends AtomicLong
      */
     public boolean compareAndSet(int expectHi, int hi, int expectLo, int lo)
     {
-        long encoded = encode(expectHi,expectLo);
-        long update = encode(hi,lo);
-        return compareAndSet(encoded,update);
+        long encoded = encode(expectHi, expectLo);
+        long update = encode(hi, lo);
+        return compareAndSet(encoded, update);
     }
 
     /**
@@ -189,15 +211,15 @@ public class AtomicBiInteger extends AtomicLong
      */
     public int addAndGetHi(int delta)
     {
-        while(true)
+        while (true)
         {
             long encoded = get();
-            int hi = getHi(encoded)+delta;
-            long update = encodeHi(encoded,hi);
-            if (compareAndSet(encoded,update))
+            int hi = getHi(encoded) + delta;
+            long update = encodeHi(encoded, hi);
+            if (compareAndSet(encoded, update))
                 return hi;
         }
-    }  
+    }
 
     /**
      * Atomically adds the given delta to the current lo value, returning the updated lo value.
@@ -207,12 +229,12 @@ public class AtomicBiInteger extends AtomicLong
      */
     public int addAndGetLo(int delta)
     {
-        while(true)
+        while (true)
         {
             long encoded = get();
-            int lo = getLo(encoded)+delta;
-            long update = encodeLo(encoded,lo);
-            if (compareAndSet(encoded,update))
+            int lo = getLo(encoded) + delta;
+            long update = encodeLo(encoded, lo);
+            if (compareAndSet(encoded, update))
                 return lo;
         }
     }
@@ -225,37 +247,15 @@ public class AtomicBiInteger extends AtomicLong
      */
     public void add(int deltaHi, int deltaLo)
     {
-        while(true)
+        while (true)
         {
             long encoded = get();
-            long update = encode(getHi(encoded)+deltaHi, getLo(encoded)+deltaLo);
-            if (compareAndSet(encoded,update))
+            long update = encode(getHi(encoded) + deltaHi, getLo(encoded) + deltaLo);
+            if (compareAndSet(encoded, update))
                 return;
         }
-    }    
-    
-    /**
-     * Gets a hi value from the given encoded value.
-     *
-     * @param encoded the encoded value
-     * @return the hi value
-     */
-    public static int getHi(long encoded)
-    {
-        return (int) ((encoded>>32)&0xFFFF_FFFFL);
     }
 
-    /**
-     * Gets a lo value from the given encoded value.
-     *
-     * @param encoded the encoded value
-     * @return the lo value
-     */
-    public static int getLo(long encoded)
-    {
-        return (int) (encoded&0xFFFF_FFFFL);
-    }
-    
     /**
      * Encodes hi and lo values into a long.
      *
@@ -265,9 +265,9 @@ public class AtomicBiInteger extends AtomicLong
      */
     public static long encode(int hi, int lo)
     {
-        long h = ((long)hi)&0xFFFF_FFFFL;
-        long l = ((long)lo)&0xFFFF_FFFFL;
-        return (h<<32)+l;
+        long h = ((long)hi) & 0xFFFF_FFFFL;
+        long l = ((long)lo) & 0xFFFF_FFFFL;
+        return (h << 32) + l;
     }
 
     /**
@@ -279,11 +279,11 @@ public class AtomicBiInteger extends AtomicLong
      */
     public static long encodeHi(long encoded, int hi)
     {
-        long h = ((long)hi)&0xFFFF_FFFFL;
-        long l = encoded&0xFFFF_FFFFL;
-        return (h<<32)+l;
+        long h = ((long)hi) & 0xFFFF_FFFFL;
+        long l = encoded & 0xFFFF_FFFFL;
+        return (h << 32) + l;
     }
-    
+
     /**
      * Sets the lo value into the given encoded value.
      *
@@ -293,8 +293,8 @@ public class AtomicBiInteger extends AtomicLong
      */
     public static long encodeLo(long encoded, int lo)
     {
-        long h = (encoded>>32)&0xFFFF_FFFFL;
-        long l = ((long)lo)&0xFFFF_FFFFL;
-        return (h<<32)+l;
+        long h = (encoded >> 32) & 0xFFFF_FFFFL;
+        long l = ((long)lo) & 0xFFFF_FFFFL;
+        return (h << 32) + l;
     }
 }

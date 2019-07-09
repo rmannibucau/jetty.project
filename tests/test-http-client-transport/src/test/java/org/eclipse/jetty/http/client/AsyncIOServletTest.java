@@ -39,7 +39,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.servlet.AsyncContext;
 import javax.servlet.DispatcherType;
 import javax.servlet.ReadListener;
-import javax.servlet.ServletException;
 import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.WriteListener;
@@ -138,7 +137,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         scenario.start(new HttpServlet()
         {
             @Override
-            protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+            protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException
             {
                 scenario.assertScope();
                 AsyncContext asyncContext = request.startAsync(request, response);
@@ -156,7 +155,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
                     }
 
                     @Override
-                    public void onAllDataRead() throws IOException
+                    public void onAllDataRead()
                     {
                         scenario.assertScope();
                     }
@@ -176,11 +175,11 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         });
 
         ContentResponse response = scenario.client.newRequest(scenario.newURI())
-                .method(HttpMethod.POST)
-                .path(scenario.servletPath)
-                .content(new StringContentProvider("0123456789"))
-                .timeout(5, TimeUnit.SECONDS)
-                .send();
+            .method(HttpMethod.POST)
+            .path(scenario.servletPath)
+            .content(new StringContentProvider("0123456789"))
+            .timeout(5, TimeUnit.SECONDS)
+            .send();
 
         assertTrue(latch.await(5, TimeUnit.SECONDS));
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR_500, response.getStatus());
@@ -195,7 +194,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         scenario.start(new HttpServlet()
         {
             @Override
-            protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+            protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException
             {
                 scenario.assertScope();
                 AsyncContext asyncContext = request.startAsync(request, response);
@@ -208,11 +207,13 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
                     {
                         scenario.assertScope();
                         while (inputStream.isReady() && !inputStream.isFinished())
+                        {
                             inputStream.read();
+                        }
                     }
 
                     @Override
-                    public void onAllDataRead() throws IOException
+                    public void onAllDataRead()
                     {
                         scenario.assertScope();
                     }
@@ -251,16 +252,16 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         CountDownLatch responseLatch = new CountDownLatch(1);
         CountDownLatch clientLatch = new CountDownLatch(1);
         scenario.client.newRequest(scenario.newURI())
-                .method(HttpMethod.POST)
-                .path(scenario.servletPath)
-                .content(content)
-                .onResponseSuccess(r -> responseLatch.countDown())
-                .timeout(5, TimeUnit.SECONDS)
-                .send(result ->
-                {
-                    assertEquals(status, result.getResponse().getStatus());
-                    clientLatch.countDown();
-                });
+            .method(HttpMethod.POST)
+            .path(scenario.servletPath)
+            .content(content)
+            .onResponseSuccess(r -> responseLatch.countDown())
+            .timeout(5, TimeUnit.SECONDS)
+            .send(result ->
+            {
+                assertEquals(status, result.getResponse().getStatus());
+                clientLatch.countDown();
+            });
 
         assertTrue(closeLatch.await(5, TimeUnit.SECONDS), "close latch expired");
         assertTrue(responseLatch.await(5, TimeUnit.SECONDS), "response latch expired");
@@ -277,7 +278,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         scenario.start(new HttpServlet()
         {
             @Override
-            protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+            protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException
             {
                 scenario.assertScope();
                 if (request.getDispatcherType() == DispatcherType.ERROR)
@@ -290,14 +291,14 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
                 request.getInputStream().setReadListener(new ReadListener()
                 {
                     @Override
-                    public void onDataAvailable() throws IOException
+                    public void onDataAvailable()
                     {
                         scenario.assertScope();
                         throw new NullPointerException("explicitly_thrown_by_test_1");
                     }
 
                     @Override
-                    public void onAllDataRead() throws IOException
+                    public void onAllDataRead()
                     {
                         scenario.assertScope();
                     }
@@ -319,10 +320,10 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         try (StacklessLogging ignore = new StacklessLogging(HttpChannel.class))
         {
             ContentResponse response = scenario.client.newRequest(scenario.newURI())
-                    .path(scenario.servletPath)
-                    .content(new StringContentProvider("0123456789"))
-                    .timeout(5, TimeUnit.SECONDS)
-                    .send();
+                .path(scenario.servletPath)
+                .content(new StringContentProvider("0123456789"))
+                .timeout(5, TimeUnit.SECONDS)
+                .send();
 
             assertEquals(HttpStatus.INTERNAL_SERVER_ERROR_500, response.getStatus());
             assertEquals(1, errors.get());
@@ -351,7 +352,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         scenario.start(new HttpServlet()
         {
             @Override
-            protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+            protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException
             {
                 scenario.assertScope();
                 AsyncContext asyncContext = request.startAsync(request, response);
@@ -382,9 +383,9 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         });
 
         ContentResponse response = scenario.client.newRequest(scenario.newURI())
-                .path(scenario.servletPath)
-                .timeout(5, TimeUnit.SECONDS)
-                .send();
+            .path(scenario.servletPath)
+            .timeout(5, TimeUnit.SECONDS)
+            .send();
 
         assertTrue(latch.await(5, TimeUnit.SECONDS));
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR_500, response.getStatus());
@@ -396,17 +397,19 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
     public void testAsyncWriteClosed(Transport transport) throws Exception
     {
         init(transport);
-        
+
         String text = "Now is the winter of our discontent. How Now Brown Cow. The quick brown fox jumped over the lazy dog.\n";
         for (int i = 0; i < 10; i++)
+        {
             text = text + text;
+        }
         byte[] data = text.getBytes(StandardCharsets.UTF_8);
 
         CountDownLatch errorLatch = new CountDownLatch(1);
         scenario.start(new HttpServlet()
         {
             @Override
-            protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+            protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException
             {
                 scenario.assertScope();
                 response.flushBuffer();
@@ -440,17 +443,17 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
 
         CountDownLatch clientLatch = new CountDownLatch(1);
         scenario.client.newRequest(scenario.newURI())
-                .path(scenario.servletPath)
-                .onResponseHeaders(response ->
-                {
-                    if (response.getStatus() == HttpStatus.OK_200)
-                        response.abort(new IOException("explicitly_closed_by_test"));
-                })
-                .send(result ->
-                {
-                    if (result.isFailed())
-                        clientLatch.countDown();
-                });
+            .path(scenario.servletPath)
+            .onResponseHeaders(response ->
+            {
+                if (response.getStatus() == HttpStatus.OK_200)
+                    response.abort(new IOException("explicitly_closed_by_test"));
+            })
+            .send(result ->
+            {
+                if (result.isFailed())
+                    clientLatch.countDown();
+            });
 
         assertTrue(errorLatch.await(10, TimeUnit.SECONDS));
         assertTrue(clientLatch.await(10, TimeUnit.SECONDS));
@@ -461,56 +464,57 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
     public void testAsyncWriteLessThanContentLengthFlushed(Transport transport) throws Exception
     {
         init(transport);
-        
+
         CountDownLatch complete = new CountDownLatch(1);
         scenario.start(new HttpServlet()
         {
             @Override
-            protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+            protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException
             {
                 response.setContentLength(10);
 
                 AsyncContext async = request.startAsync();
                 ServletOutputStream out = response.getOutputStream();
                 AtomicInteger state = new AtomicInteger(0);
-                
+
                 out.setWriteListener(new WriteListener()
                 {
                     @Override
                     public void onWritePossible() throws IOException
                     {
-                        while(true)
+                        while (true)
                         {
                             if (!out.isReady())
                                 return;
-                            
-                            switch(state.get())
+
+                            switch (state.get())
                             {
                                 case 0:
                                     state.incrementAndGet();
                                     WriteListener listener = this;
-                                    new Thread(()->
+                                    new Thread(() ->
                                     {
                                         try
                                         {
                                             Thread.sleep(50);
                                             listener.onWritePossible();
                                         }
-                                        catch(Exception e)
-                                        {}
+                                        catch(Exception ignored)
+                                        {
+                                        }
                                     }).start();
                                     return;
-                                
+
                                 case 1:
                                     state.incrementAndGet();
                                     out.flush();
                                     break;
-                                    
+
                                 case 2:
                                     state.incrementAndGet();
                                     out.write("12345".getBytes());
                                     break;
-                                    
+
                                 case 3:
                                     async.complete();
                                     complete.countDown();
@@ -530,35 +534,24 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         AtomicBoolean failed = new AtomicBoolean(false);
         CountDownLatch clientLatch = new CountDownLatch(3);
         scenario.client.newRequest(scenario.newURI())
-                .path(scenario.servletPath)
-                .onResponseHeaders(response ->
-                {
-                    if (response.getStatus() == HttpStatus.OK_200)
-                        clientLatch.countDown();
-                })
-                .onResponseContent(new Response.ContentListener()
-                {                    
-                    @Override
-                    public void onContent(Response response, ByteBuffer content)
-                    {
-                        // System.err.println("Content: "+BufferUtil.toDetailString(content));
-                    }
-                })
-                .onResponseFailure(new Response.FailureListener()
-                {
-                    @Override
-                    public void onFailure(Response response, Throwable failure)
-                    {
-                        clientLatch.countDown();
-                    }
-                })
-                .send(result -> 
-                {
-                    failed.set(result.isFailed());
+            .path(scenario.servletPath)
+            .onResponseHeaders(response ->
+            {
+                if (response.getStatus() == HttpStatus.OK_200)
                     clientLatch.countDown();
-                    clientLatch.countDown();
-                    clientLatch.countDown();
-                });
+            })
+            .onResponseContent((response, content) ->
+            {
+                // System.err.println("Content: "+BufferUtil.toDetailString(content));
+            })
+            .onResponseFailure((response, failure) -> clientLatch.countDown())
+            .send(result ->
+            {
+                failed.set(result.isFailed());
+                clientLatch.countDown();
+                clientLatch.countDown();
+                clientLatch.countDown();
+            });
 
         assertTrue(complete.await(10, TimeUnit.SECONDS));
         assertTrue(clientLatch.await(10, TimeUnit.SECONDS));
@@ -576,7 +569,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         scenario.start(new HttpServlet()
         {
             @Override
-            protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+            protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException
             {
                 scenario.assertScope();
                 response.flushBuffer();
@@ -628,12 +621,12 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         });
 
         ContentResponse response = scenario.client.newRequest(scenario.newURI())
-                .method(HttpMethod.POST)
-                .path(scenario.servletPath)
-                .header(HttpHeader.CONNECTION, "close")
-                .content(new StringContentProvider(text))
-                .timeout(5, TimeUnit.SECONDS)
-                .send();
+            .method(HttpMethod.POST)
+            .path(scenario.servletPath)
+            .header(HttpHeader.CONNECTION, "close")
+            .content(new StringContentProvider(text))
+            .timeout(5, TimeUnit.SECONDS)
+            .send();
 
         String responseContent = response.getContentAsString();
         assertThat(responseContent, containsString("i=" + data.length + " eof=true finished=true"));
@@ -648,7 +641,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         scenario.start(new HttpServlet()
         {
             @Override
-            protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+            protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException
             {
                 scenario.assertScope();
                 response.flushBuffer();
@@ -661,7 +654,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
                 in.setReadListener(new ReadListener()
                 {
                     @Override
-                    public void onDataAvailable() throws IOException
+                    public void onDataAvailable()
                     {
                         scenario.assertScope();
                         try
@@ -712,24 +705,24 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
             }
         };
         scenario.client.newRequest(scenario.newURI())
-                .method(HttpMethod.POST)
-                .path(scenario.servletPath)
-                .content(content)
-                .timeout(5, TimeUnit.SECONDS)
-                .send(new BufferingResponseListener()
+            .method(HttpMethod.POST)
+            .path(scenario.servletPath)
+            .content(content)
+            .timeout(5, TimeUnit.SECONDS)
+            .send(new BufferingResponseListener()
+            {
+                @Override
+                public void onComplete(Result result)
                 {
-                    @Override
-                    public void onComplete(Result result)
+                    if (result.isSucceeded())
                     {
-                        if (result.isSucceeded())
-                        {
-                            Response response = result.getResponse();
-                            String content = getContentAsString();
-                            if (response.getStatus() == HttpStatus.OK_200 && success.equals(content))
-                                clientLatch.countDown();
-                        }
+                        Response response = result.getResponse();
+                        String content = getContentAsString();
+                        if (response.getStatus() == HttpStatus.OK_200 && success.equals(content))
+                            clientLatch.countDown();
                     }
-                });
+                }
+            });
 
         sleep(100);
         content.offer(ByteBuffer.wrap(data));
@@ -747,7 +740,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         scenario.start(new HttpServlet()
         {
             @Override
-            protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+            protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException
             {
                 scenario.assertScope();
                 response.flushBuffer();
@@ -763,7 +756,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
                 input.setReadListener(new ReadListener()
                 {
                     @Override
-                    public void onDataAvailable() throws IOException
+                    public void onDataAvailable()
                     {
                         scenario.assertScope();
                         async.start(() ->
@@ -810,24 +803,24 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         CountDownLatch clientLatch = new CountDownLatch(1);
         DeferredContentProvider content = new DeferredContentProvider();
         scenario.client.newRequest(scenario.newURI())
-                .method(HttpMethod.POST)
-                .path(scenario.servletPath)
-                .content(content)
-                .timeout(5, TimeUnit.SECONDS)
-                .send(new BufferingResponseListener()
+            .method(HttpMethod.POST)
+            .path(scenario.servletPath)
+            .content(content)
+            .timeout(5, TimeUnit.SECONDS)
+            .send(new BufferingResponseListener()
+            {
+                @Override
+                public void onComplete(Result result)
                 {
-                    @Override
-                    public void onComplete(Result result)
+                    if (result.isSucceeded())
                     {
-                        if (result.isSucceeded())
-                        {
-                            Response response = result.getResponse();
-                            String content = getContentAsString();
-                            if (response.getStatus() == HttpStatus.OK_200 && success.equals(content))
-                                clientLatch.countDown();
-                        }
+                        Response response = result.getResponse();
+                        String content = getContentAsString();
+                        if (response.getStatus() == HttpStatus.OK_200 && success.equals(content))
+                            clientLatch.countDown();
                     }
-                });
+                }
+            });
 
         sleep(100);
         content.offer(ByteBuffer.wrap(data));
@@ -847,7 +840,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         scenario.start(new HttpServlet()
         {
             @Override
-            protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+            protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException
             {
                 scenario.assertScope();
                 response.flushBuffer();
@@ -894,12 +887,12 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         });
 
         ContentResponse response = scenario.client.newRequest(scenario.newURI())
-                .method(HttpMethod.POST)
-                .path(scenario.servletPath)
-                .header(HttpHeader.CONNECTION, "close")
-                .content(new StringContentProvider("XYZ"))
-                .timeout(5, TimeUnit.SECONDS)
-                .send();
+            .method(HttpMethod.POST)
+            .path(scenario.servletPath)
+            .header(HttpHeader.CONNECTION, "close")
+            .content(new StringContentProvider("XYZ"))
+            .timeout(5, TimeUnit.SECONDS)
+            .send();
 
         assertThat(response.getStatus(), Matchers.equalTo(HttpStatus.OK_200));
         assertThat(response.getContentAsString(), Matchers.equalTo(success));
@@ -916,7 +909,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         scenario.start(new HttpServlet()
         {
             @Override
-            protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+            protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException
             {
                 scenario.assertScope();
                 AsyncContext asyncContext = request.startAsync(request, response);
@@ -925,14 +918,14 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
                 request.getInputStream().setReadListener(new ReadListener()
                 {
                     @Override
-                    public void onDataAvailable() throws IOException
+                    public void onDataAvailable()
                     {
                         scenario.assertScope();
                         oda.set(true);
                     }
 
                     @Override
-                    public void onAllDataRead() throws IOException
+                    public void onAllDataRead()
                     {
                         scenario.assertScope();
                         asyncContext.complete();
@@ -951,10 +944,10 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         });
 
         ContentResponse response = scenario.client.newRequest(scenario.newURI())
-                .path(scenario.servletPath)
-                .header(HttpHeader.CONNECTION, "close")
-                .timeout(5, TimeUnit.SECONDS)
-                .send();
+            .path(scenario.servletPath)
+            .header(HttpHeader.CONNECTION, "close")
+            .timeout(5, TimeUnit.SECONDS)
+            .send();
 
         assertThat(response.getStatus(), Matchers.equalTo(HttpStatus.OK_200));
         assertTrue(latch.await(5, TimeUnit.SECONDS));
@@ -972,7 +965,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         scenario.start(new HttpServlet()
         {
             @Override
-            protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+            protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException
             {
                 AsyncContext asyncContext = request.startAsync();
                 request.getInputStream().setReadListener(new ReadListener()
@@ -999,7 +992,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
                     }
 
                     @Override
-                    public void onAllDataRead() throws IOException
+                    public void onAllDataRead()
                     {
                         asyncContext.complete();
                     }
@@ -1013,7 +1006,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
                 response.getOutputStream().setWriteListener(new WriteListener()
                 {
                     @Override
-                    public void onWritePossible() throws IOException
+                    public void onWritePossible()
                     {
                         writeLatch.countDown();
                     }
@@ -1032,24 +1025,24 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         contentProvider.offer(ByteBuffer.wrap(content.getBytes(StandardCharsets.UTF_8)));
         CountDownLatch clientLatch = new CountDownLatch(1);
         scenario.client.newRequest(scenario.newURI())
-                .method(HttpMethod.POST)
-                .path(scenario.servletPath)
-                .content(contentProvider)
-                .send(new BufferingResponseListener()
+            .method(HttpMethod.POST)
+            .path(scenario.servletPath)
+            .content(contentProvider)
+            .send(new BufferingResponseListener()
+            {
+                @Override
+                public void onComplete(Result result)
                 {
-                    @Override
-                    public void onComplete(Result result)
+                    if (result.isSucceeded())
                     {
-                        if (result.isSucceeded())
-                        {
-                            Response response = result.getResponse();
-                            assertThat(response.getStatus(), Matchers.equalTo(HttpStatus.OK_200));
-                            assertThat(getContentAsString(), Matchers.equalTo(content));
-                            assertThat(errors, Matchers.hasSize(0));
-                            clientLatch.countDown();
-                        }
+                        Response response = result.getResponse();
+                        assertThat(response.getStatus(), Matchers.equalTo(HttpStatus.OK_200));
+                        assertThat(getContentAsString(), Matchers.equalTo(content));
+                        assertThat(errors, Matchers.hasSize(0));
+                        clientLatch.countDown();
                     }
-                });
+                }
+            });
 
         assertTrue(writeLatch.await(5, TimeUnit.SECONDS));
 
@@ -1077,7 +1070,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         scenario.start(new HttpServlet()
         {
             @Override
-            protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+            protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException
             {
                 AsyncContext asyncContext = request.startAsync();
                 ServletInputStream input = request.getInputStream();
@@ -1095,7 +1088,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
                     }
 
                     @Override
-                    public void onAllDataRead() throws IOException
+                    public void onAllDataRead()
                     {
                     }
 
@@ -1113,11 +1106,11 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         CountDownLatch responseLatch = new CountDownLatch(1);
         DeferredContentProvider contentProvider = new DeferredContentProvider();
         contentProvider.offer(ByteBuffer.wrap(content.getBytes(StandardCharsets.UTF_8)));
-        org.eclipse.jetty.client.api.Request request = scenario.client.newRequest(scenario.newURI())
-                .method(HttpMethod.POST)
-                .path(scenario.servletPath)
-                .content(contentProvider)
-                .onResponseSuccess(response -> responseLatch.countDown());
+        var request = scenario.client.newRequest(scenario.newURI())
+            .method(HttpMethod.POST)
+            .path(scenario.servletPath)
+            .content(contentProvider)
+            .onResponseSuccess(response -> responseLatch.countDown());
 
         if (scenario.connector instanceof UnixSocketConnector)
         {
@@ -1125,9 +1118,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
             return;
         }
 
-        Destination destination = scenario.client.getDestination(scenario.getScheme(),
-                                                        "localhost",
-                                                        scenario.getNetworkConnectorLocalPortInt().get());
+        Destination destination = scenario.client.resolveDestination(request);
         FuturePromise<org.eclipse.jetty.client.api.Connection> promise = new FuturePromise<>();
         destination.newConnection(promise);
         org.eclipse.jetty.client.api.Connection connection = promise.get(5, TimeUnit.SECONDS);
@@ -1166,7 +1157,6 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         assertTrue(errorLatch.await(5, TimeUnit.SECONDS));
         assertTrue(clientLatch.await(5, TimeUnit.SECONDS));
     }
-    
 
     @ParameterizedTest
     @ArgumentsSource(TransportProvider.class)
@@ -1176,21 +1166,21 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         scenario.start(new HttpServlet()
         {
             @Override
-            protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
-            {                    
-                System.err.println("Service "+request);
+            protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException
+            {
+                System.err.println("Service " + request);
 
                 final HttpInput httpInput = ((Request)request).getHttpInput();
                 httpInput.addInterceptor(new HttpInput.Interceptor()
                 {
                     int state = 0;
                     Content saved;
-                    
+
                     @Override
                     public Content readFrom(Content content)
                     {
                         // System.err.printf("readFrom s=%d saved=%b %s%n",state,saved!=null,content);
-                        switch(state)
+                        switch (state)
                         {
                             case 0:
                                 // null transform
@@ -1204,39 +1194,39 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
                                 if (content.isEmpty())
                                 {
                                     state++;
-                                    return content;      
+                                    return content;
                                 }
                                 ByteBuffer copy = wrap(toArray(content.getByteBuffer()));
                                 content.skip(copy.remaining());
                                 return new Content(copy);
                             }
 
-                            case 2: 
+                            case 2:
                                 // byte by byte
                                 if (content.isEmpty())
                                 {
                                     state++;
-                                    return content;      
+                                    return content;
                                 }
                                 byte[] b = new byte[1];
-                                int l = content.get(b,0,1);
-                                return new Content(wrap(b,0,l));
-                                
-                            case 3: 
+                                int l = content.get(b, 0, 1);
+                                return new Content(wrap(b, 0, l));
+
+                            case 3:
                             {
                                 // double vision
                                 if (content.isEmpty())
                                 {
-                                    if (saved==null)
+                                    if (saved == null)
                                     {
                                         state++;
                                         return content;
                                     }
                                     Content copy = saved;
-                                    saved=null;
+                                    saved = null;
                                     return copy;
                                 }
-                                
+
                                 byte[] data = toArray(content.getByteBuffer());
                                 content.skip(data.length);
                                 saved = new Content(wrap(data));
@@ -1248,11 +1238,11 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
                         }
                     }
                 });
-                
+
                 AsyncContext asyncContext = request.startAsync();
                 ServletInputStream input = request.getInputStream();
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
-                
+
                 input.setReadListener(new ReadListener()
                 {
                     @Override
@@ -1261,12 +1251,12 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
                         while (input.isReady())
                         {
                             int b = input.read();
-                            if (b>0)
+                            if (b > 0)
                             {
                                 // System.err.printf("0x%2x %s %n", b, Character.isISOControl(b)?"?":(""+(char)b));
                                 out.write(b);
                             }
-                            else if (b<0)
+                            else if (b < 0)
                                 return;
                         }
                     }
@@ -1285,37 +1275,37 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
                 });
             }
         });
-        
+
         DeferredContentProvider contentProvider = new DeferredContentProvider();
         CountDownLatch clientLatch = new CountDownLatch(1);
 
-        String expected = 
+        String expected =
             "S0" +
-            "S1" +
-            "S2" +
-            "S3S3" +
-            "S4" +
-            "S5" +
-            "S6";
+                "S1" +
+                "S2" +
+                "S3S3" +
+                "S4" +
+                "S5" +
+                "S6";
 
         scenario.client.newRequest(scenario.newURI())
-                .method(HttpMethod.POST)
-                .path(scenario.servletPath)
-                .content(contentProvider)
-                .send(new BufferingResponseListener()
+            .method(HttpMethod.POST)
+            .path(scenario.servletPath)
+            .content(contentProvider)
+            .send(new BufferingResponseListener()
+            {
+                @Override
+                public void onComplete(Result result)
                 {
-                    @Override
-                    public void onComplete(Result result)
+                    if (result.isSucceeded())
                     {
-                        if (result.isSucceeded())
-                        {
-                            Response response = result.getResponse();
-                            assertThat(response.getStatus(), Matchers.equalTo(HttpStatus.OK_200));
-                            assertThat(getContentAsString(), Matchers.equalTo(expected));
-                            clientLatch.countDown();
-                        }
+                        Response response = result.getResponse();
+                        assertThat(response.getStatus(), Matchers.equalTo(HttpStatus.OK_200));
+                        assertThat(getContentAsString(), Matchers.equalTo(expected));
+                        clientLatch.countDown();
                     }
-                });
+                }
+            });
 
         contentProvider.offer(BufferUtil.toBuffer("S0"));
         contentProvider.flush();
@@ -1331,11 +1321,8 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         contentProvider.flush();
         contentProvider.offer(BufferUtil.toBuffer("S6"));
         contentProvider.close();
-        
-        
-        assertTrue(clientLatch.await(10,TimeUnit.SECONDS));
-        
 
+        assertTrue(clientLatch.await(10, TimeUnit.SECONDS));
     }
 
     @ParameterizedTest
@@ -1346,7 +1333,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         scenario.start(new HttpServlet()
         {
             @Override
-            protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException
+            protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException
             {
                 AsyncContext asyncContext = request.startAsync();
                 asyncContext.setTimeout(0);
@@ -1367,18 +1354,18 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
                     try
                     {
                         ContentResponse response = scenario.client.newRequest(scenario.newURI())
-                                .method(HttpMethod.POST)
-                                .path(scenario.servletPath)
-                                .content(new InputStreamContentProvider(new ByteArrayInputStream(new byte[16 * 1024])
+                            .method(HttpMethod.POST)
+                            .path(scenario.servletPath)
+                            .content(new InputStreamContentProvider(new ByteArrayInputStream(new byte[16 * 1024])
+                            {
+                                @Override
+                                public int read(byte[] b, int off, int len)
                                 {
-                                    @Override
-                                    public int read(byte[] b, int off, int len)
-                                    {
-                                        sleep(5);
-                                        return super.read(b, off, Math.min(len, 4242));
-                                    }
-                                }))
-                                .send();
+                                    sleep(5);
+                                    return super.read(b, off, Math.min(len, 4242));
+                                }
+                            }))
+                            .send();
                         assertEquals(HttpStatus.OK_200, response.getStatus());
                         latch.countDown();
                     }
@@ -1412,7 +1399,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
             this.input = asyncContext.getRequest().getInputStream();
             this.output = response.getOutputStream();
             CompletableFuture.allOf(inputComplete, outputComplete)
-                    .whenComplete((ignoredResult, ignoredThrowable) -> asyncContext.complete());
+                .whenComplete((ignoredResult, ignoredThrowable) -> asyncContext.complete());
             // Dispatch setting the write listener to another thread.
             executor.execute(() -> output.setWriteListener(this));
         }
@@ -1429,13 +1416,13 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         }
 
         @Override
-        public void onAllDataRead() throws IOException
+        public void onAllDataRead()
         {
             inputComplete.complete(null);
         }
 
         @Override
-        public void onWritePossible() throws IOException
+        public void onWritePossible()
         {
             // Dispatch OWP to another thread.
             executor.execute(() ->
@@ -1520,7 +1507,7 @@ public class AsyncIOServletTest extends AbstractTest<AsyncIOServletTest.AsyncTra
         }
 
         @Override
-        public void stopServer() throws Exception
+        public void stopServer()
         {
             checkScope();
             scope.set(null);

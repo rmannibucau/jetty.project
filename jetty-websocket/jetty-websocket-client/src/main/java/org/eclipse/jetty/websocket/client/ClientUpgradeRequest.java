@@ -237,6 +237,16 @@ public final class ClientUpgradeRequest implements UpgradeRequest
     }
 
     @Override
+    public void setSubProtocols(List<String> subProtocols)
+    {
+        this.subProtocols.clear();
+        if (subProtocols != null)
+        {
+            this.subProtocols.addAll(subProtocols);
+        }
+    }
+
+    @Override
     public boolean hasSubProtocol(String test)
     {
         for (String protocol : subProtocols)
@@ -287,16 +297,6 @@ public final class ClientUpgradeRequest implements UpgradeRequest
         throw new UnsupportedOperationException("HttpSession not available on Client request");
     }
 
-    @Override
-    public void setSubProtocols(List<String> subProtocols)
-    {
-        this.subProtocols.clear();
-        if (subProtocols != null)
-        {
-            this.subProtocols.addAll(subProtocols);
-        }
-    }
-
     /**
      * ABNF from RFC 2616, RFC 822, and RFC 6455 specified characters requiring quoting.
      */
@@ -341,8 +341,8 @@ public final class ClientUpgradeRequest implements UpgradeRequest
      * <p>
      * Quoting is determined if any of the characters in the {@code delim} are found in the input {@code str}.
      *
-     * @param buf   the buffer to append to
-     * @param str   the string to possibly quote
+     * @param buf the buffer to append to
+     * @param str the string to possibly quote
      * @param delim the delimiter characters that will trigger automatic quoting
      */
     private static void quoteIfNeeded(StringBuilder buf, String str, String delim)

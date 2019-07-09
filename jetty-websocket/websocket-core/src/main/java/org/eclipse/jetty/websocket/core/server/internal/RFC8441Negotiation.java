@@ -25,14 +25,15 @@ import org.eclipse.jetty.http.BadMessageException;
 import org.eclipse.jetty.io.ByteBufferPool;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.util.DecoratedObjectFactory;
+import org.eclipse.jetty.websocket.core.WebSocketComponents;
 import org.eclipse.jetty.websocket.core.WebSocketExtensionRegistry;
 import org.eclipse.jetty.websocket.core.server.Negotiation;
 
 public class RFC8441Negotiation extends Negotiation
 {
-    public RFC8441Negotiation(Request baseRequest, HttpServletRequest request, HttpServletResponse response, WebSocketExtensionRegistry registry, DecoratedObjectFactory objectFactory, ByteBufferPool bufferPool) throws BadMessageException
+    public RFC8441Negotiation(Request baseRequest, HttpServletRequest request, HttpServletResponse response, WebSocketComponents components) throws BadMessageException
     {
-        super(baseRequest, request, response, registry, objectFactory, bufferPool);
+        super(baseRequest, request, response, components);
     }
 
     @Override

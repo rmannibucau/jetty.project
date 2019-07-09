@@ -47,6 +47,7 @@ import org.eclipse.jetty.util.thread.Scheduler;
 import org.eclipse.jetty.websocket.core.Behavior;
 import org.eclipse.jetty.websocket.core.ExtensionConfig;
 import org.eclipse.jetty.websocket.core.FrameHandler;
+import org.eclipse.jetty.websocket.core.WebSocketComponents;
 import org.eclipse.jetty.websocket.core.WebSocketConstants;
 import org.eclipse.jetty.websocket.core.WebSocketException;
 import org.eclipse.jetty.websocket.core.internal.ExtensionStack;
@@ -94,8 +95,7 @@ public class RFC8441Handshaker implements Handshaker
         if (pool == null)
             pool = baseRequest.getHttpChannel().getConnector().getByteBufferPool();
 
-        Negotiation negotiation = new RFC8441Negotiation(baseRequest, request, response,
-                negotiator.getExtensionRegistry(), negotiator.getObjectFactory(), pool);
+        Negotiation negotiation = new RFC8441Negotiation(baseRequest, request, response, new WebSocketComponents());
         if (LOG.isDebugEnabled())
             LOG.debug("negotiation {}", negotiation);
 

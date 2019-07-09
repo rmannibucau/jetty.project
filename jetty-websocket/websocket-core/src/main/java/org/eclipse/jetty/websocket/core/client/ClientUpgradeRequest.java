@@ -20,6 +20,7 @@ package org.eclipse.jetty.websocket.core.client;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -30,7 +31,6 @@ import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.HttpConversation;
 import org.eclipse.jetty.client.HttpRequest;
 import org.eclipse.jetty.client.HttpResponse;
-import org.eclipse.jetty.client.HttpResponseException;
 import org.eclipse.jetty.client.HttpUpgrader;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.api.Response;
@@ -44,6 +44,7 @@ import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.io.ByteBufferPool;
 import org.eclipse.jetty.io.Connection;
 import org.eclipse.jetty.io.EndPoint;
+import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.util.QuotedStringTokenizer;
 import org.eclipse.jetty.util.StringUtil;
 import org.eclipse.jetty.util.log.Log;
@@ -67,7 +68,7 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
         return new ClientUpgradeRequest(webSocketClient, requestURI)
         {
             @Override
-            public FrameHandler getFrameHandler(WebSocketCoreClient coreClient, HttpResponse response)
+            public FrameHandler getFrameHandler()
             {
                 return frameHandler;
             }
@@ -77,6 +78,7 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
     private static final Logger LOG = Log.getLogger(ClientUpgradeRequest.class);
     protected final CompletableFuture<FrameHandler.CoreSession> futureCoreSession;
     private final WebSocketCoreClient wsClient;
+    private FrameHandler frameHandler;
     private FrameHandler.ConfigurationCustomizer customizer = new FrameHandler.ConfigurationCustomizer();
     private List<UpgradeListener> upgradeListeners = new ArrayList<>();
 
@@ -108,8 +110,6 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
 
         this.wsClient = webSocketClient;
         this.futureCoreSession = new CompletableFuture<>();
-
-        getConversation().setAttribute(HttpUpgrader.Factory.class.getName(), this);
     }
 
     public void setConfiguration(FrameHandler.ConfigurationCustomizer config)
@@ -126,14 +126,18 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
     {
         HttpFields headers = getHeaders();
         for (ExtensionConfig config : configs)
+        {
             headers.add(HttpHeader.SEC_WEBSOCKET_EXTENSIONS, config.getParameterizedName());
+        }
     }
 
     public void addExtensions(String... configs)
     {
         HttpFields headers = getHeaders();
         for (String config : configs)
+        {
             headers.add(HttpHeader.SEC_WEBSOCKET_EXTENSIONS, ExtensionConfig.parse(config).getParameterizedName());
+        }
     }
 
     public List<ExtensionConfig> getExtensions()
@@ -149,7 +153,9 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
         HttpFields headers = getHeaders();
         headers.remove(HttpHeader.SEC_WEBSOCKET_EXTENSIONS);
         for (ExtensionConfig config : configs)
+        {
             headers.add(HttpHeader.SEC_WEBSOCKET_EXTENSIONS, config.getParameterizedName());
+        }
     }
 
     public List<String> getSubProtocols()
@@ -162,7 +168,9 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
         HttpFields headers = getHeaders();
         headers.remove(HttpHeader.SEC_WEBSOCKET_SUBPROTOCOL);
         for (String protocol : protocols)
+        {
             headers.add(HttpHeader.SEC_WEBSOCKET_SUBPROTOCOL, protocol);
+        }
     }
 
     public void setSubProtocols(List<String> protocols)
@@ -170,12 +178,17 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
         HttpFields headers = getHeaders();
         headers.remove(HttpHeader.SEC_WEBSOCKET_SUBPROTOCOL);
         for (String protocol : protocols)
+        {
             headers.add(HttpHeader.SEC_WEBSOCKET_SUBPROTOCOL, protocol);
+        }
     }
 
     @Override
     public void send(final Response.CompleteListener listener)
     {
+        frameHandler = getFrameHandler();
+        if (frameHandler == null)
+            throw new IllegalArgumentException("FrameHandler could not be created");
         initWebSocketHeaders();
         super.send(listener);
     }
@@ -213,19 +226,12 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
             }
 
             Throwable failure = result.getFailure();
-            if ((failure instanceof java.net.SocketException) ||
+            boolean wrapFailure = !((failure instanceof java.net.SocketException) ||
                 (failure instanceof java.io.InterruptedIOException) ||
-                (failure instanceof HttpResponseException) ||
-                (failure instanceof UpgradeException))
-            {
-                // handle as-is
-                handleException(failure);
-            }
-            else
-            {
-                // wrap in UpgradeException
-                handleException(new UpgradeException(requestURI, responseStatusCode, responseLine, failure));
-            }
+                (failure instanceof UpgradeException));
+            if (wrapFailure)
+                failure = new UpgradeException(requestURI, responseStatusCode, responseLine, failure);
+            handleException(failure);
         }
 
         if (responseStatusCode != HttpStatus.SWITCHING_PROTOCOLS_101)
@@ -239,6 +245,17 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
     protected void handleException(Throwable failure)
     {
         futureCoreSession.completeExceptionally(failure);
+        if (frameHandler != null)
+        {
+            try
+            {
+                frameHandler.onError(failure, Callback.NOOP);
+            }
+            catch (Throwable t)
+            {
+                LOG.warn("FrameHandler onError threw", t);
+            }
+        }
     }
 
     @Override
@@ -254,16 +271,14 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
 
     /**
      * Allow for overridden customization of endpoint (such as special transport level properties: e.g. TCP keepAlive)
-     *
-     * @see <a href="https://github.com/eclipse/jetty.project/issues/1811">Issue #1811 - Customization of WebSocket Connections via WebSocketPolicy</a>
      */
-    protected void customize(EndPoint endp)
+    protected void customize(EndPoint endPoint)
     {
     }
 
-    protected WebSocketConnection newWebSocketConnection(EndPoint endp, Executor executor, Scheduler scheduler, ByteBufferPool byteBufferPool, WebSocketCoreSession coreSession)
+    protected WebSocketConnection newWebSocketConnection(EndPoint endPoint, Executor executor, Scheduler scheduler, ByteBufferPool byteBufferPool, WebSocketCoreSession coreSession)
     {
-        return new WebSocketConnection(endp, executor, scheduler, byteBufferPool, coreSession);
+        return new WebSocketConnection(endPoint, executor, scheduler, byteBufferPool, coreSession);
     }
 
     protected WebSocketCoreSession newWebSocketCoreSession(FrameHandler handler, Negotiated negotiated)
@@ -271,21 +286,13 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
         return new WebSocketCoreSession(handler, Behavior.CLIENT, negotiated);
     }
 
-    public abstract FrameHandler getFrameHandler(WebSocketCoreClient coreClient, HttpResponse response);
+    public abstract FrameHandler getFrameHandler();
 
     private void initWebSocketHeaders()
     {
         // TODO: verify why we need to call listeners here (too early).
         // Notify upgrade hooks
         notifyUpgradeListeners((listener) -> listener.onHandshakeRequest(this));
-    }
-
-    private void setHeaderIfNotPresent(HttpHeader header, String value)
-    {
-        if (!getHeaders().contains(header))
-        {
-            getHeaders().put(header, value);
-        }
     }
 
     private void notifyUpgradeListeners(Consumer<UpgradeListener> action)
@@ -298,12 +305,12 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
             }
             catch (Throwable t)
             {
-                LOG.warn("Unhandled error: " + t.getMessage(), t);
+                LOG.info("Exception while invoking listener " + listener, t);
             }
         }
     }
 
-    void upgrade(HttpResponse response, EndPoint endPoint)
+    public void upgrade(HttpResponse response, EndPoint endPoint)
     {
         // Parse the Negotiated Extensions
         List<ExtensionConfig> negotiatedExtensions = new ArrayList<>();
@@ -341,9 +348,8 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
         }
 
         // Negotiate the extension stack
-        HttpClient httpClient = wsClient.getHttpClient();
-        ExtensionStack extensionStack = new ExtensionStack(wsClient.getExtensionRegistry(), Behavior.CLIENT);
-        extensionStack.negotiate(wsClient.getObjectFactory(), httpClient.getByteBufferPool(), offeredExtensions, negotiatedExtensions);
+        ExtensionStack extensionStack = new ExtensionStack(wsClient.getWebSocketComponents(), Behavior.CLIENT);
+        extensionStack.negotiate(offeredExtensions, negotiatedExtensions);
 
         // Get the negotiated subprotocol
         String negotiatedSubProtocol = null;
@@ -354,7 +360,7 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
             if (values != null)
             {
                 if (values.length > 1)
-                    throw new WebSocketException("Upgrade failed: Too many WebSocket subprotocol's in response: " + values);
+                    throw new WebSocketException("Upgrade failed: Too many WebSocket subprotocol's in response: " + Arrays.toString(values));
                 else if (values.length == 1)
                     negotiatedSubProtocol = values[0];
             }
@@ -370,34 +376,24 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
         // We can upgrade
         customize(endPoint);
 
-        FrameHandler frameHandler = getFrameHandler(wsClient, response);
-
-        if (frameHandler == null)
-        {
-            StringBuilder err = new StringBuilder();
-            err.append("FrameHandler is null for request ").append(this.getURI().toASCIIString());
-            if (negotiatedSubProtocol != null)
-            {
-                err.append(" [subprotocol: ").append(negotiatedSubProtocol).append("]");
-            }
-            throw new WebSocketException(err.toString());
-        }
-
         Request request = response.getRequest();
         Negotiated negotiated = new Negotiated(
-                request.getURI(),
-                negotiatedSubProtocol,
-                HttpScheme.HTTPS.is(request.getScheme()), // TODO better than this?
-                extensionStack,
-                WebSocketConstants.SPEC_VERSION_STRING);
+            request.getURI(),
+            negotiatedSubProtocol,
+            HttpScheme.HTTPS.is(request.getScheme()), // TODO better than this?
+            extensionStack,
+            WebSocketConstants.SPEC_VERSION_STRING);
 
         WebSocketCoreSession coreSession = newWebSocketCoreSession(frameHandler, negotiated);
-//        wsClient.customize(coreSession);
+        customizer.customize(coreSession);
 
+        HttpClient httpClient = wsClient.getHttpClient();
         WebSocketConnection wsConnection = newWebSocketConnection(endPoint, httpClient.getExecutor(), httpClient.getScheduler(), httpClient.getByteBufferPool(), coreSession);
 
         for (Connection.Listener listener : wsClient.getBeans(Connection.Listener.class))
+        {
             wsConnection.addListener(listener);
+        }
 
         coreSession.setWebSocketConnection(wsConnection);
 

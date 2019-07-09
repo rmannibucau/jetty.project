@@ -19,7 +19,6 @@
 package org.eclipse.jetty.websocket.core.server;
 
 import java.io.IOException;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -35,10 +34,5 @@ public interface Handshaker
         return new HandshakerSelector(new RFC6455Handshaker(), new RFC8441Handshaker());
     }
 
-    boolean upgradeRequest(
-        WebSocketNegotiator negotiator,
-        HttpServletRequest request,
-        HttpServletResponse response,
-        FrameHandler.Customizer defaultCustomizer)
-        throws IOException;
+    boolean upgradeRequest(WebSocketNegotiator negotiator, HttpServletRequest request, HttpServletResponse response, FrameHandler.Customizer defaultCustomizer) throws IOException;
 }

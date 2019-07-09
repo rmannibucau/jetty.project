@@ -260,9 +260,9 @@ public class HttpChannelOverHTTP2 extends HttpChannel implements Closeable, Writ
         boolean endStream = frame.isEndStream();
         if (endStream)
         {
-            boolean handle_content = onContentComplete();
-            boolean handle_request = onRequestComplete();
-            handle |= handle_content | handle_request;
+            boolean handleContent = onContentComplete();
+            boolean handleRequest = onRequestComplete();
+            handle |= handleContent | handleRequest;
         }
 
         if (LOG.isDebugEnabled())
@@ -311,7 +311,7 @@ public class HttpChannelOverHTTP2 extends HttpChannel implements Closeable, Writ
     @Override
     public boolean onTimeout(Throwable failure, Consumer<Runnable> consumer)
     {
-        boolean delayed = _delayedUntilContent;
+        final boolean delayed = _delayedUntilContent;
         _delayedUntilContent = false;
 
         boolean result = isIdle();

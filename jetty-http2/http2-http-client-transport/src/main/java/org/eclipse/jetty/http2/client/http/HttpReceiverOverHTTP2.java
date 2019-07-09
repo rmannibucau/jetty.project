@@ -36,6 +36,7 @@ import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.api.Response;
 import org.eclipse.jetty.http.HttpField;
 import org.eclipse.jetty.http.HttpFields;
+import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.MetaData;
 import org.eclipse.jetty.http2.ErrorCode;
@@ -96,7 +97,8 @@ public class HttpReceiverOverHTTP2 extends HttpReceiver implements HTTP2Channel.
                         return;
                 }
 
-                if (isTunnel(exchange))
+                if (HttpMethod.CONNECT.is(exchange.getRequest().getMethod()) &&
+                        exchange.getResponse().getStatus() == HttpStatus.OK_200)
                 {
                     HttpRequest httpRequest = exchange.getRequest();
                     EndPoint endPoint = new ClientHTTP2StreamEndPoint((IStream)stream);

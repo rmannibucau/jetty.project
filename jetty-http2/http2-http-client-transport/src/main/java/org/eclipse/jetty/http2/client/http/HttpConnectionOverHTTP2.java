@@ -167,9 +167,9 @@ public class HttpConnectionOverHTTP2 extends HttpConnection implements Sweeper.S
             abort(failure);
 
             session.close(ErrorCode.NO_ERROR.code, failure.getMessage(), Callback.NOOP);
-            
+
             HttpChannel channel = idleChannels.poll();
-            while (channel!=null)
+            while (channel != null)
             {
                 channel.destroy();
                 channel = idleChannels.poll();
@@ -193,7 +193,7 @@ public class HttpConnectionOverHTTP2 extends HttpConnection implements Sweeper.S
         }
         activeChannels.clear();
         HttpChannel channel = idleChannels.poll();
-        while (channel!=null)
+        while (channel != null)
         {
             channel.destroy();
             channel = idleChannels.poll();
@@ -214,9 +214,9 @@ public class HttpConnectionOverHTTP2 extends HttpConnection implements Sweeper.S
     public String toString()
     {
         return String.format("%s@%x(closed=%b)[%s]",
-                getClass().getSimpleName(),
-                hashCode(),
-                isClosed(),
-                session);
+            getClass().getSimpleName(),
+            hashCode(),
+            isClosed(),
+            session);
     }
 }

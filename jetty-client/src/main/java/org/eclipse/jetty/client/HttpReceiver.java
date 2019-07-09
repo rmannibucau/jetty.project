@@ -32,7 +32,6 @@ import org.eclipse.jetty.client.api.Response;
 import org.eclipse.jetty.client.api.Result;
 import org.eclipse.jetty.http.HttpField;
 import org.eclipse.jetty.http.HttpHeader;
-import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.Callback;
@@ -117,12 +116,13 @@ public abstract class HttpReceiver
         if (!updateResponseState(ResponseState.IDLE, ResponseState.TRANSIENT))
             return false;
 
-        HttpConversation conversation = exchange.getConversation();
-        HttpResponse response = exchange.getResponse();
+        final HttpConversation conversation = exchange.getConversation();
+        final HttpResponse response = exchange.getResponse();
         // Probe the protocol handlers
-        HttpDestination destination = getHttpDestination();
-        HttpClient client = destination.getHttpClient();
-        ProtocolHandler protocolHandler = client.findProtocolHandler(exchange.getRequest(), response);
+        final HttpDestination destination = getHttpDestination();
+        final HttpClient client = destination.getHttpClient();
+        final ProtocolHandler protocolHandler = client.findProtocolHandler(exchange.getRequest(), response);
+
         Response.Listener handlerListener = null;
         if (protocolHandler != null)
         {
@@ -158,7 +158,8 @@ public abstract class HttpReceiver
      */
     protected boolean responseHeader(HttpExchange exchange, HttpField field)
     {
-        out: while (true)
+        out:
+        while (true)
         {
             ResponseState current = responseState.get();
             switch (current)
@@ -240,7 +241,8 @@ public abstract class HttpReceiver
      */
     protected boolean responseHeaders(HttpExchange exchange)
     {
-        out: while (true)
+        out:
+        while (true)
         {
             ResponseState current = responseState.get();
             switch (current)
@@ -266,16 +268,16 @@ public abstract class HttpReceiver
         List<Response.ResponseListener> responseListeners = exchange.getConversation().getResponseListeners();
         notifier.notifyHeaders(responseListeners, response);
         contentListeners = responseListeners.stream()
-                .filter(Response.AsyncContentListener.class::isInstance)
-                .map(Response.AsyncContentListener.class::cast)
-                .collect(Collectors.toList());
+            .filter(Response.AsyncContentListener.class::isInstance)
+            .map(Response.AsyncContentListener.class::cast)
+            .collect(Collectors.toList());
 
         List<String> contentEncodings = response.getHeaders().getCSV(HttpHeader.CONTENT_ENCODING.asString(), false);
         if (contentEncodings != null && !contentEncodings.isEmpty())
         {
             for (ContentDecoder.Factory factory : getHttpDestination().getHttpClient().getContentDecoderFactories())
             {
-                for (String encoding: contentEncodings)
+                for (String encoding : contentEncodings)
                 {
                     if (factory.getEncoding().equalsIgnoreCase(encoding))
                     {
@@ -305,7 +307,8 @@ public abstract class HttpReceiver
      */
     protected boolean responseContent(HttpExchange exchange, ByteBuffer buffer, Callback callback)
     {
-        out: while (true)
+        out:
+        while (true)
         {
             ResponseState current = responseState.get();
             switch (current)
@@ -483,7 +486,8 @@ public abstract class HttpReceiver
     {
         // Update the state to avoid more response processing.
         boolean terminate;
-        out: while (true)
+        out:
+        while (true)
         {
             ResponseState current = responseState.get();
             switch (current)
@@ -542,20 +546,14 @@ public abstract class HttpReceiver
         return updated;
     }
 
-    protected boolean isTunnel(HttpExchange exchange)
-    {
-        return HttpMethod.CONNECT.is(exchange.getRequest().getMethod()) &&
-                exchange.getResponse().getStatus() == HttpStatus.OK_200;
-    }
-
     @Override
     public String toString()
     {
         return String.format("%s@%x(rsp=%s,failure=%s)",
-                getClass().getSimpleName(),
-                hashCode(),
-                responseState,
-                failure);
+            getClass().getSimpleName(),
+            hashCode(),
+            responseState,
+            failure);
     }
 
     /**

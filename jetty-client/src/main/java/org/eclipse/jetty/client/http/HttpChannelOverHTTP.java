@@ -83,7 +83,7 @@ public class HttpChannelOverHTTP extends HttpChannel
     public void send(HttpExchange exchange)
     {
         outMessages.increment();
-        sender.send( exchange );
+        sender.send(exchange);
     }
 
     @Override
@@ -186,9 +186,8 @@ public class HttpChannelOverHTTP extends HttpChannel
     public String toString()
     {
         return String.format("%s[send=%s,recv=%s]",
-                super.toString(),
-                sender,
-                receiver);
+            super.toString(),
+            sender,
+            receiver);
     }
-
 }

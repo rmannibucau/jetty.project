@@ -20,6 +20,7 @@ package org.eclipse.jetty.client.http;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousCloseException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,6 +29,7 @@ import java.util.concurrent.atomic.LongAdder;
 import org.eclipse.jetty.client.HttpConnection;
 import org.eclipse.jetty.client.HttpDestination;
 import org.eclipse.jetty.client.HttpExchange;
+import org.eclipse.jetty.client.HttpProxy;
 import org.eclipse.jetty.client.HttpRequest;
 import org.eclipse.jetty.client.HttpUpgrader;
 import org.eclipse.jetty.client.IConnection;
@@ -263,6 +265,12 @@ public class HttpConnectionOverHTTP extends AbstractConnection implements IConne
         protected void normalizeRequest(Request request)
         {
             super.normalizeRequest(request);
+            if (request instanceof HttpProxy.TunnelRequest)
+            {
+                long connectTimeout = getHttpClient().getConnectTimeout();
+                request.timeout(connectTimeout, TimeUnit.MILLISECONDS)
+                        .idleTimeout(2 * connectTimeout, TimeUnit.MILLISECONDS);
+            }
             if (request instanceof HttpUpgrader.Factory)
             {
                 HttpUpgrader upgrader = ((HttpUpgrader.Factory)request).newHttpUpgrader(HttpVersion.HTTP_1_1);

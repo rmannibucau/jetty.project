@@ -200,9 +200,9 @@ public class HttpClient extends ContainerLifeCycle
         ByteBufferPool byteBufferPool = getByteBufferPool();
         if (byteBufferPool == null)
             setByteBufferPool(new MappedByteBufferPool(2048,
-                    executor instanceof ThreadPool.SizedThreadPool
-                            ? ((ThreadPool.SizedThreadPool)executor).getMaxThreads() / 2
-                            : ProcessorUtils.availableProcessors() * 2));
+                executor instanceof ThreadPool.SizedThreadPool
+                    ? ((ThreadPool.SizedThreadPool)executor).getMaxThreads() / 2
+                    : ProcessorUtils.availableProcessors() * 2));
         Scheduler scheduler = getScheduler();
         if (scheduler == null)
             setScheduler(new ScheduledExecutorScheduler(name + "-scheduler", false));
@@ -236,7 +236,9 @@ public class HttpClient extends ContainerLifeCycle
         handlers.clear();
 
         for (HttpDestination destination : destinations.values())
+        {
             destination.close();
+        }
         destinations.clear();
 
         requestListeners.clear();
@@ -315,6 +317,8 @@ public class HttpClient extends ContainerLifeCycle
     {
         return decoderFactories;
     }
+
+    // @checkstyle-disable-check : MethodNameCheck
 
     /**
      * Performs a GET request to the specified URI.
@@ -399,6 +403,8 @@ public class HttpClient extends ContainerLifeCycle
         return newRequest(uri).method(HttpMethod.POST);
     }
 
+    // @checkstyle-enable-check : MethodNameCheck
+
     /**
      * Creates a new request with the "http" scheme and the specified host and port
      *
@@ -437,11 +443,11 @@ public class HttpClient extends ContainerLifeCycle
     {
         Request newRequest = newHttpRequest(oldRequest.getConversation(), newURI);
         newRequest.method(oldRequest.getMethod())
-                .version(oldRequest.getVersion())
-                .content(oldRequest.getContent())
-                .idleTimeout(oldRequest.getIdleTimeout(), TimeUnit.MILLISECONDS)
-                .timeout(oldRequest.getTimeout(), TimeUnit.MILLISECONDS)
-                .followRedirects(oldRequest.isFollowRedirects());
+            .version(oldRequest.getVersion())
+            .content(oldRequest.getContent())
+            .idleTimeout(oldRequest.getIdleTimeout(), TimeUnit.MILLISECONDS)
+            .timeout(oldRequest.getTimeout(), TimeUnit.MILLISECONDS)
+            .followRedirects(oldRequest.isFollowRedirects());
         for (HttpField field : oldRequest.getHeaders())
         {
             HttpHeader header = field.getHeader();
@@ -459,7 +465,7 @@ public class HttpClient extends ContainerLifeCycle
 
             // Remove authorization headers.
             if (HttpHeader.AUTHORIZATION == header ||
-                    HttpHeader.PROXY_AUTHORIZATION == header)
+                HttpHeader.PROXY_AUTHORIZATION == header)
                 continue;
 
             String name = field.getName();
@@ -503,17 +509,30 @@ public class HttpClient extends ContainerLifeCycle
      * @param port the destination port
      * @return the destination
      * @see #getDestinations()
+     * @deprecated use {@link #resolveDestination(Request)} instead
      */
+    @Deprecated
     public Destination getDestination(String scheme, String host, int port)
     {
         Origin origin = createOrigin(scheme, host, port);
         return resolveDestination(new HttpDestination.Key(origin, null));
     }
 
+    public Destination resolveDestination(Request request)
+    {
+        Origin origin = createOrigin(request.getScheme(), request.getHost(), request.getPort());
+        HttpClientTransport transport = getTransport();
+        HttpDestination.Key destinationKey = transport.newDestinationKey((HttpRequest)request, origin);
+        HttpDestination destination = resolveDestination(destinationKey);
+        if (LOG.isDebugEnabled())
+            LOG.debug("Resolved {} for {}", destination, request);
+        return destination;
+    }
+
     private Origin createOrigin(String scheme, String host, int port)
     {
         if (!HttpScheme.HTTP.is(scheme) && !HttpScheme.HTTPS.is(scheme) &&
-                !HttpScheme.WS.is(scheme) && !HttpScheme.WSS.is(scheme))
+            !HttpScheme.WS.is(scheme) && !HttpScheme.WSS.is(scheme))
             throw new IllegalArgumentException("Invalid protocol " + scheme);
 
         scheme = scheme.toLowerCase(Locale.ENGLISH);
@@ -562,16 +581,7 @@ public class HttpClient extends ContainerLifeCycle
 
     protected void send(final HttpRequest request, List<Response.ResponseListener> listeners)
     {
-        Origin origin = createOrigin(request.getScheme(), request.getHost(), request.getPort());
-        HttpClientTransport transport = getTransport();
-        HttpDestination.Key destinationKey = null;
-        if (transport instanceof HttpClientTransport.Dynamic)
-            destinationKey = ((HttpClientTransport.Dynamic)transport).newDestinationKey(request, origin);
-        if (destinationKey == null)
-            destinationKey = new HttpDestination.Key(origin, null);
-        if (LOG.isDebugEnabled())
-            LOG.debug("Selected {} for {}", destinationKey, request);
-        HttpDestination destination = resolveDestination(destinationKey);
+        HttpDestination destination = (HttpDestination)resolveDestination(request);
         destination.send(request, listeners);
     }
 
@@ -967,6 +977,7 @@ public class HttpClient extends ContainerLifeCycle
     /**
      * Sets the http compliance mode for parsing http responses.
      * This affect how weak the {@link HttpParser} parses http responses and which http protocol level is supported
+     *
      * @param httpCompliance The compliance level which is used to actually parse http responses
      */
     public void setHttpCompliance(HttpCompliance httpCompliance)
@@ -1254,7 +1265,7 @@ public class HttpClient extends ContainerLifeCycle
             else
             {
                 StringBuilder value = new StringBuilder();
-                for (Iterator<ContentDecoder.Factory> iterator = set.iterator(); iterator.hasNext();)
+                for (Iterator<ContentDecoder.Factory> iterator = set.iterator(); iterator.hasNext(); )
                 {
                     ContentDecoder.Factory decoderFactory = iterator.next();
                     value.append(decoderFactory.getEncoding());

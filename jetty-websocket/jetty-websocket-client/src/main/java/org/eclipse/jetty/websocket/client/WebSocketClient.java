@@ -43,15 +43,14 @@ import org.eclipse.jetty.util.log.Logger;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.UpgradeRequest;
-import org.eclipse.jetty.websocket.api.UpgradeResponse;
 import org.eclipse.jetty.websocket.api.WebSocketBehavior;
 import org.eclipse.jetty.websocket.api.WebSocketPolicy;
+import org.eclipse.jetty.websocket.api.WebSocketSessionListener;
 import org.eclipse.jetty.websocket.client.impl.JettyClientUpgradeRequest;
 import org.eclipse.jetty.websocket.common.JettyWebSocketFrameHandler;
 import org.eclipse.jetty.websocket.common.JettyWebSocketFrameHandlerFactory;
 import org.eclipse.jetty.websocket.common.SessionTracker;
 import org.eclipse.jetty.websocket.common.WebSocketContainer;
-import org.eclipse.jetty.websocket.common.WebSocketSessionListener;
 import org.eclipse.jetty.websocket.core.FrameHandler;
 import org.eclipse.jetty.websocket.core.WebSocketComponents;
 import org.eclipse.jetty.websocket.core.client.UpgradeListener;
@@ -103,8 +102,8 @@ public class WebSocketClient extends ContainerLifeCycle implements WebSocketPoli
      * Connect to remote websocket endpoint
      *
      * @param websocket the websocket object
-     * @param toUri     the websocket uri to connect to
-     * @param request   the upgrade request information
+     * @param toUri the websocket uri to connect to
+     * @param request the upgrade request information
      * @return the future for the session, available on success of connect
      * @throws IOException if unable to connect
      */
@@ -117,17 +116,19 @@ public class WebSocketClient extends ContainerLifeCycle implements WebSocketPoli
      * Connect to remote websocket endpoint
      *
      * @param websocket the websocket object
-     * @param toUri     the websocket uri to connect to
-     * @param request   the upgrade request information
-     * @param upgradeListener  the upgrade listener
+     * @param toUri the websocket uri to connect to
+     * @param request the upgrade request information
+     * @param upgradeListener the upgrade listener
      * @return the future for the session, available on success of connect
      * @throws IOException if unable to connect
      */
     public CompletableFuture<Session> connect(Object websocket, URI toUri, UpgradeRequest request, JettyUpgradeListener upgradeListener) throws IOException
     {
         for (Connection.Listener listener : getBeans(Connection.Listener.class))
+        {
             coreClient.addBean(listener);
-            
+        }
+
         JettyClientUpgradeRequest upgradeRequest = new JettyClientUpgradeRequest(this, coreClient, request, toUri, websocket);
         if (upgradeListener != null)
         {
@@ -147,8 +148,21 @@ public class WebSocketClient extends ContainerLifeCycle implements WebSocketPoli
             });
         }
         upgradeRequest.setConfiguration(configurationCustomizer);
-        coreClient.connect(upgradeRequest);
-        return upgradeRequest.getFutureSession();
+        CompletableFuture<Session> futureSession = new CompletableFuture<>();
+
+        coreClient.connect(upgradeRequest).whenComplete((coreSession, error) ->
+        {
+            if (error != null)
+            {
+                futureSession.completeExceptionally(JettyWebSocketFrameHandler.convertCause(error));
+                return;
+            }
+
+            JettyWebSocketFrameHandler frameHandler = (JettyWebSocketFrameHandler)upgradeRequest.getFrameHandler();
+            futureSession.complete(frameHandler.getSession());
+        });
+
+        return futureSession;
     }
 
     @Override
@@ -312,10 +326,9 @@ public class WebSocketClient extends ContainerLifeCycle implements WebSocketPoli
         return sessionTracker.getSessions();
     }
 
-    public JettyWebSocketFrameHandler newFrameHandler(Object websocketPojo, UpgradeRequest upgradeRequest, UpgradeResponse upgradeResponse,
-        CompletableFuture<Session> futureSession)
+    public JettyWebSocketFrameHandler newFrameHandler(Object websocketPojo)
     {
-        return frameHandlerFactory.newJettyFrameHandler(websocketPojo, upgradeRequest, upgradeResponse, futureSession);
+        return frameHandlerFactory.newJettyFrameHandler(websocketPojo);
     }
 
     /**

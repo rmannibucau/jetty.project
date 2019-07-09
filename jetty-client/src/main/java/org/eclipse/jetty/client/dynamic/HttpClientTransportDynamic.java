@@ -79,7 +79,7 @@ import org.eclipse.jetty.io.EndPoint;
  * version, or request headers, or request attributes, or even request path) by overriding
  * {@link #newDestinationKey(HttpRequest, Origin)}.</p>
  */
-public class HttpClientTransportDynamic extends AbstractConnectorHttpClientTransport implements HttpClientTransport.Dynamic
+public class HttpClientTransportDynamic extends AbstractConnectorHttpClientTransport
 {
     private final List<ClientConnectionFactory.Info> factoryInfos;
     private final List<String> protocols;
@@ -111,7 +111,9 @@ public class HttpClientTransportDynamic extends AbstractConnectorHttpClientTrans
                 .map(p -> p.toLowerCase(Locale.ENGLISH))
                 .collect(Collectors.toList());
         for (ClientConnectionFactory.Info factoryInfo : factoryInfos)
+        {
             addBean(factoryInfo);
+        }
         setConnectionPoolFactory(destination ->
                 new MultiplexConnectionPool(destination, destination.getHttpClient().getMaxConnectionsPerDestination(), destination, 1));
     }
@@ -137,8 +139,8 @@ public class HttpClientTransportDynamic extends AbstractConnectorHttpClientTrans
             // is negotiated: e.g. [http/1.1, h2] negotiates [h2], but
             // here we don't know yet what will be negotiated.
             protocols = this.protocols.stream()
-                    .filter(p -> p.equals(http1) || p.equals(http2))
-                    .collect(Collectors.toList());
+                .filter(p -> p.equals(http1) || p.equals(http2))
+                .collect(Collectors.toList());
         }
         if (protocols.isEmpty())
             return new HttpDestination.Key(origin, null);

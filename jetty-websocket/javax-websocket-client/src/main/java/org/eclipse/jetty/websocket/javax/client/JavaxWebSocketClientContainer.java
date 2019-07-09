@@ -28,7 +28,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
-
 import javax.websocket.ClientEndpoint;
 import javax.websocket.ClientEndpointConfig;
 import javax.websocket.DeploymentException;
@@ -45,6 +44,7 @@ import org.eclipse.jetty.websocket.javax.common.ConfiguredEndpoint;
 import org.eclipse.jetty.websocket.javax.common.InvalidWebSocketException;
 import org.eclipse.jetty.websocket.javax.common.JavaxWebSocketContainer;
 import org.eclipse.jetty.websocket.javax.common.JavaxWebSocketExtensionConfig;
+import org.eclipse.jetty.websocket.javax.common.JavaxWebSocketFrameHandler;
 import org.eclipse.jetty.websocket.javax.common.JavaxWebSocketFrameHandlerFactory;
 
 /**
@@ -66,7 +66,7 @@ public class JavaxWebSocketClientContainer extends JavaxWebSocketContainer imple
 
     public JavaxWebSocketClientContainer(WebSocketComponents components)
     {
-        this(components, ()->
+        this(components, () ->
         {
             WebSocketCoreClient coreClient = new WebSocketCoreClient(components);
             coreClient.getHttpClient().setName("Javax-WebSocketClient@" + Integer.toHexString(coreClient.getHttpClient().hashCode()));
@@ -106,17 +106,29 @@ public class JavaxWebSocketClientContainer extends JavaxWebSocketContainer imple
     private CompletableFuture<Session> connect(JavaxClientUpgradeRequest upgradeRequest)
     {
         upgradeRequest.setConfiguration(defaultCustomizer);
-        CompletableFuture<Session> fut = upgradeRequest.getFutureSession();
+        CompletableFuture<Session> futureSession = new CompletableFuture<>();
+
         try
         {
-            getWebSocketCoreClient().connect(upgradeRequest);
-            return fut;
+            WebSocketCoreClient coreClient = getWebSocketCoreClient();
+            coreClient.connect(upgradeRequest).whenComplete((coreSession, error) ->
+            {
+                if (error != null)
+                {
+                    futureSession.completeExceptionally(error);
+                    return;
+                }
+
+                JavaxWebSocketFrameHandler frameHandler = (JavaxWebSocketFrameHandler)upgradeRequest.getFrameHandler();
+                futureSession.complete(frameHandler.getSession());
+            });
         }
         catch (Exception e)
         {
-            fut.completeExceptionally(e);
-            return fut;
+            futureSession.completeExceptionally(e);
         }
+
+        return futureSession;
     }
 
     private Session connect(ConfiguredEndpoint configuredEndpoint, URI destURI) throws IOException
@@ -135,18 +147,20 @@ public class JavaxWebSocketClientContainer extends JavaxWebSocketContainer imple
             upgradeRequest.addListener(jsrUpgradeListener);
 
             for (Extension ext : clientEndpointConfig.getExtensions())
+            {
                 upgradeRequest.addExtensions(new JavaxWebSocketExtensionConfig(ext));
+            }
 
             if (clientEndpointConfig.getPreferredSubprotocols().size() > 0)
                 upgradeRequest.setSubProtocols(clientEndpointConfig.getPreferredSubprotocols());
         }
 
-        long timeout = coreClient.getHttpClient().getConnectTimeout();
+        long timeout = getWebSocketCoreClient().getHttpClient().getConnectTimeout();
         try
         {
             Future<Session> sessionFuture = connect(upgradeRequest);
-            if (timeout>0)
-                return sessionFuture.get(timeout+1000, TimeUnit.MILLISECONDS);
+            if (timeout > 0)
+                return sessionFuture.get(timeout + 1000, TimeUnit.MILLISECONDS);
             return sessionFuture.get();
         }
         catch (ExecutionException e)

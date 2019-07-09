@@ -27,6 +27,7 @@ import java.util.Queue;
 import java.util.function.BiFunction;
 
 import org.eclipse.jetty.client.HttpChannel;
+import org.eclipse.jetty.client.HttpConversation;
 import org.eclipse.jetty.client.HttpExchange;
 import org.eclipse.jetty.client.HttpReceiver;
 import org.eclipse.jetty.client.HttpRequest;
@@ -109,8 +110,9 @@ public class HttpReceiverOverHTTP2 extends HttpReceiver implements HTTP2Channel.
                     if (LOG.isDebugEnabled())
                         LOG.debug("Successful HTTP2 tunnel on {} via {}", stream, endPoint);
                     ((IStream)stream).setAttachment(endPoint);
-                    httpRequest.getConversation().setAttribute(EndPoint.class.getName(), endPoint);
-                    HttpUpgrader upgrader = (HttpUpgrader)httpRequest.getAttributes().get(HttpUpgrader.class.getName());
+                    HttpConversation conversation = httpRequest.getConversation();
+                    conversation.setAttribute(EndPoint.class.getName(), endPoint);
+                    HttpUpgrader upgrader = (HttpUpgrader)conversation.getAttribute(HttpUpgrader.class.getName());
                     if (upgrader != null)
                         upgrader.upgrade(httpResponse, endPoint);
                 }

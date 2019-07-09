@@ -106,7 +106,7 @@ public class HttpChannelOverHTTP extends HttpChannel
                 return new Result(result, new HttpResponseException("101 response without 'Connection: Upgrade'", response));
 
             HttpRequest request = exchange.getRequest();
-            HttpUpgrader upgrader = (HttpUpgrader)request.getAttributes().get(HttpUpgrader.class.getName());
+            HttpUpgrader upgrader = (HttpUpgrader)request.getConversation().getAttribute(HttpUpgrader.class.getName());
             if (upgrader == null)
                 return new Result(result, new HttpResponseException("101 response without " + HttpUpgrader.class.getSimpleName(), response));
 

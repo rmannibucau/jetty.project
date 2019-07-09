@@ -274,7 +274,7 @@ public class HttpConnectionOverHTTP extends AbstractConnection implements IConne
             if (request instanceof HttpUpgrader.Factory)
             {
                 HttpUpgrader upgrader = ((HttpUpgrader.Factory)request).newHttpUpgrader(HttpVersion.HTTP_1_1);
-                request.attribute(HttpUpgrader.class.getName(), upgrader);
+                ((HttpRequest)request).getConversation().setAttribute(HttpUpgrader.class.getName(), upgrader);
                 upgrader.prepare((HttpRequest)request);
             }
         }

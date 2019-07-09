@@ -97,7 +97,7 @@ public class HttpConnectionOverHTTP2 extends HttpConnection implements Sweeper.S
         if (request instanceof HttpUpgrader.Factory)
         {
             HttpUpgrader upgrader = ((HttpUpgrader.Factory)request).newHttpUpgrader(HttpVersion.HTTP_2);
-            request.attribute(HttpUpgrader.class.getName(), upgrader);
+            ((HttpRequest)request).getConversation().setAttribute(HttpUpgrader.class.getName(), upgrader);
             upgrader.prepare((HttpRequest)request);
         }
     }

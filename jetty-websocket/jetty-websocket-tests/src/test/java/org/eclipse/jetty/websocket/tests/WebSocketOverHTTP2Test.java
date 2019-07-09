@@ -20,14 +20,18 @@ package org.eclipse.jetty.websocket.tests;
 
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.dynamic.HttpClientTransportDynamic;
+import org.eclipse.jetty.client.http.HttpClientConnectionFactory;
 import org.eclipse.jetty.http2.client.HTTP2Client;
 import org.eclipse.jetty.http2.client.http.ClientConnectionFactoryOverHTTP2;
 import org.eclipse.jetty.http2.server.HTTP2CServerConnectionFactory;
+import org.eclipse.jetty.io.ClientConnectionFactory;
 import org.eclipse.jetty.io.ClientConnector;
 import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -58,7 +62,10 @@ public class WebSocketOverHTTP2Test
         QueuedThreadPool serverThreads = new QueuedThreadPool();
         serverThreads.setName("server");
         server = new Server(serverThreads);
-        connector = new ServerConnector(server, 1, 1, new HTTP2CServerConnectionFactory(new HttpConfiguration()));
+        HttpConfiguration httpConfiguration = new HttpConfiguration();
+        HttpConnectionFactory h1 = new HttpConnectionFactory(httpConfiguration);
+        HTTP2CServerConnectionFactory h2c = new HTTP2CServerConnectionFactory(httpConfiguration);
+        connector = new ServerConnector(server, 1, 1, h1, h2c);
         server.addConnector(connector);
 
         ServletContextHandler context = new ServletContextHandler(server, "/");
@@ -82,15 +89,25 @@ public class WebSocketOverHTTP2Test
     }
 
     @Test
+    public void testWebSocketOverDynamicHTTP1() throws Exception
+    {
+        testWebSocketOverDynamicTransport(clientConnector -> HttpClientConnectionFactory.HTTP11);
+    }
+
+    @Test
     public void testWebSocketOverDynamicHTTP2() throws Exception
+    {
+        testWebSocketOverDynamicTransport(clientConnector -> new ClientConnectionFactoryOverHTTP2.H2C(new HTTP2Client(clientConnector)));
+    }
+
+    private void testWebSocketOverDynamicTransport(Function<ClientConnector, ClientConnectionFactory.Info> protocolFn) throws Exception
     {
         ClientConnector clientConnector = new ClientConnector();
         clientConnector.setSelectors(1);
-        ClientConnectionFactoryOverHTTP2.H2C h2c = new ClientConnectionFactoryOverHTTP2.H2C(new HTTP2Client(clientConnector));
-        HttpClient httpClient = new HttpClient(new HttpClientTransportDynamic(clientConnector, h2c));
         QueuedThreadPool clientThreads = new QueuedThreadPool();
         clientThreads.setName("client");
-        httpClient.setExecutor(clientThreads);
+        clientConnector.setExecutor(clientThreads);
+        HttpClient httpClient = new HttpClient(new HttpClientTransportDynamic(clientConnector, protocolFn.apply(clientConnector)));
 
         WebSocketClient wsClient = new WebSocketClient(httpClient);
         wsClient.start();

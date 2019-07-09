@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -45,7 +44,6 @@ import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.io.ByteBufferPool;
 import org.eclipse.jetty.io.Connection;
 import org.eclipse.jetty.io.EndPoint;
-import org.eclipse.jetty.util.B64Code;
 import org.eclipse.jetty.util.QuotedStringTokenizer;
 import org.eclipse.jetty.util.StringUtil;
 import org.eclipse.jetty.util.log.Log;
@@ -140,12 +138,10 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
 
     public List<ExtensionConfig> getExtensions()
     {
-        List<ExtensionConfig> extensions = getHeaders().getCSV(HttpHeader.SEC_WEBSOCKET_EXTENSIONS, true)
-                .stream()
-                .map(ExtensionConfig::parse)
-                .collect(Collectors.toList());
-
-        return extensions;
+        return getHeaders().getCSV(HttpHeader.SEC_WEBSOCKET_EXTENSIONS, true)
+            .stream()
+            .map(ExtensionConfig::parse)
+            .collect(Collectors.toList());
     }
 
     public void setExtensions(List<ExtensionConfig> configs)
@@ -158,8 +154,7 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
 
     public List<String> getSubProtocols()
     {
-        List<String> subProtocols = getHeaders().getCSV(HttpHeader.SEC_WEBSOCKET_SUBPROTOCOL, true);
-        return subProtocols;
+        return getHeaders().getCSV(HttpHeader.SEC_WEBSOCKET_SUBPROTOCOL, true);
     }
 
     public void setSubProtocols(String... protocols)
@@ -277,13 +272,6 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
     }
 
     public abstract FrameHandler getFrameHandler(WebSocketCoreClient coreClient, HttpResponse response);
-
-    private final String genRandomKey()
-    {
-        byte[] bytes = new byte[16];
-        ThreadLocalRandom.current().nextBytes(bytes);
-        return new String(B64Code.encode(bytes));
-    }
 
     private void initWebSocketHeaders()
     {

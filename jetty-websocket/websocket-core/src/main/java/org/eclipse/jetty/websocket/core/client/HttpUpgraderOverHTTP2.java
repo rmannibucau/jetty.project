@@ -46,8 +46,6 @@ public class HttpUpgraderOverHTTP2 implements HttpUpgrader
     @Override
     public void upgrade(HttpResponse response, EndPoint endPoint)
     {
-        // TODO: do we need some extra check here?
-
         clientUpgradeRequest.upgrade(response, endPoint);
     }
 }

@@ -108,9 +108,6 @@ public class HttpReceiverOverHTTP2 extends HttpReceiver implements HTTP2Channel.
                         LOG.debug("Successful HTTP2 tunnel on {} via {}", stream, endPoint);
                     ((IStream)stream).setAttachment(endPoint);
                     httpRequest.getConversation().setAttribute(EndPoint.class.getName(), endPoint);
-
-                    // TODO: can we make this similar to the proxy case where the after tunnel
-                    //  logic is done in the onHeaders listener, rather than here?
                     HttpUpgrader upgrader = (HttpUpgrader)httpRequest.getAttributes().get(HttpUpgrader.class.getName());
                     if (upgrader != null)
                         upgrader.upgrade(httpResponse, endPoint);

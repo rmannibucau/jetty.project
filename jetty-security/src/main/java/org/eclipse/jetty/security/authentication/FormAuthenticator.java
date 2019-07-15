@@ -369,8 +369,6 @@ public class FormAuthenticator extends LoginAuthenticator
                 }
             }
 
-
-            // TODO why??
             // if we can't send challenge
             if (DeferredAuthentication.isDeferred(response))
             {

@@ -30,4 +30,7 @@ module org.eclipse.jetty.security
     requires static java.sql;
     // Only required if using SPNEGO.
     requires static java.security.jgss;
+
+    // TODO: only if using GoogleAuthenticator?
+    requires org.eclipse.jetty.util.ajax;
 }

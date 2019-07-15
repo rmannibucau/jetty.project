@@ -9,10 +9,12 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpStatus;
@@ -22,6 +24,8 @@ import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.SecurityHandler;
 import org.eclipse.jetty.security.UserStore;
 import org.eclipse.jetty.security.authentication.BasicAuthenticator;
+import org.eclipse.jetty.security.authentication.FormAuthenticator;
+import org.eclipse.jetty.security.authentication.GoogleAuthenticator;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.util.ajax.JSON;
@@ -93,23 +97,36 @@ public class AuthenticationTest
         server.join();
     }
 
+    public static String getChallengeUri(HttpSession session)
+    {
+        String antiForgeryToken;
+        synchronized (session)
+        {
+            antiForgeryToken = (session.getAttribute(CSRF_TOKEN_ATTRIBUTE) == null)
+                ? new BigInteger(130, new SecureRandom()).toString(32)
+                : (String)session.getAttribute(CSRF_TOKEN_ATTRIBUTE);
+            session.setAttribute(CSRF_TOKEN_ATTRIBUTE, antiForgeryToken);
+        }
+
+        Map<String, String> state = new HashMap<>();
+        state.put("url", "http://localhost:8080/login");
+        state.put("csrf", "ahklfhalfdkjadf");
+
+        return authorization_endpoint +
+            "?client_id=" + clientId +
+            "&redirect_uri=" + redirectUri +
+            "&scope=openid%20email" +
+            "&state=" + JSON.toString(state) +
+            "&response_type=code";
+    }
+
+
     public static class WelcomeServlet extends HttpServlet
     {
         @Override
         protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException
         {
-            String antiForgeryToken = (request.getSession().getAttribute(CSRF_TOKEN_ATTRIBUTE) == null)
-                ? new BigInteger(130, new SecureRandom()).toString(32)
-                : (String)request.getSession().getAttribute(CSRF_TOKEN_ATTRIBUTE);
-            request.getSession().setAttribute(CSRF_TOKEN_ATTRIBUTE, antiForgeryToken);
-
-            String authenticateUri = authorization_endpoint +
-                "?client_id=" + clientId +
-                "&redirect_uri=" + redirectUri +
-                "&scope=openid%20email" +
-                "&state=" + antiForgeryToken +
-                "&response_type=code";
-
+            String authenticateUri = getChallengeUri(request.getSession());
             response.setContentType("text/html");
             response.setStatus(HttpServletResponse.SC_OK);
             response.getWriter().println("<h1>Welcome</h1>");
@@ -194,7 +211,7 @@ public class AuthenticationTest
         // Configure Handler
         ConstraintSecurityHandler securityHandler = new ConstraintSecurityHandler();
         securityHandler.setConstraintMappings(Collections.singletonList(mapping));
-        securityHandler.setAuthenticator(new BasicAuthenticator());
+        securityHandler.setAuthenticator(new FormAuthenticator()); // TODO: set up
         securityHandler.setLoginService(loginService);
 
         return securityHandler;

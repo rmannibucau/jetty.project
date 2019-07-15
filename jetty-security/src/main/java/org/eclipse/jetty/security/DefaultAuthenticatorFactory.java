@@ -26,6 +26,7 @@ import org.eclipse.jetty.security.authentication.ClientCertAuthenticator;
 import org.eclipse.jetty.security.authentication.ConfigurableSpnegoAuthenticator;
 import org.eclipse.jetty.security.authentication.DigestAuthenticator;
 import org.eclipse.jetty.security.authentication.FormAuthenticator;
+import org.eclipse.jetty.security.authentication.GoogleAuthenticator;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.security.Constraint;
 
@@ -68,8 +69,10 @@ public class DefaultAuthenticatorFactory implements Authenticator.Factory
             authenticator = new ConfigurableSpnegoAuthenticator();
         else if (Constraint.__NEGOTIATE_AUTH.equalsIgnoreCase(auth)) // see Bug #377076
             authenticator = new ConfigurableSpnegoAuthenticator(Constraint.__NEGOTIATE_AUTH);
-        if (Constraint.__CERT_AUTH.equalsIgnoreCase(auth) || Constraint.__CERT_AUTH2.equalsIgnoreCase(auth))
+        else if (Constraint.__CERT_AUTH.equalsIgnoreCase(auth) || Constraint.__CERT_AUTH2.equalsIgnoreCase(auth))
             authenticator = new ClientCertAuthenticator();
+        else if (Constraint.__GOOGLE_AUTH.equalsIgnoreCase(auth))
+            authenticator = new GoogleAuthenticator();
 
         return authenticator;
     }

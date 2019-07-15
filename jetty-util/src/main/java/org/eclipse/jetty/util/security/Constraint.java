@@ -43,6 +43,8 @@ public class Constraint implements Cloneable, Serializable
 
     public static final String __NEGOTIATE_AUTH = "NEGOTIATE";
 
+    public static final String __GOOGLE_AUTH = "GOOGLE";
+
     public static boolean validateMethod(String method)
     {
         if (method == null)
@@ -54,7 +56,8 @@ public class Constraint implements Cloneable, Serializable
             method.equals(__CERT_AUTH) ||
             method.equals(__CERT_AUTH2) ||
             method.equals(__SPNEGO_AUTH) ||
-            method.equals(__NEGOTIATE_AUTH));
+            method.equals(__NEGOTIATE_AUTH) ||
+            method.equals(__GOOGLE_AUTH));
     }
 
     public static final int DC_UNSET = -1;

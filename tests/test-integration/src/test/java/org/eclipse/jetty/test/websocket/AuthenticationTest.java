@@ -9,7 +9,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -23,9 +22,7 @@ import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.SecurityHandler;
 import org.eclipse.jetty.security.UserStore;
-import org.eclipse.jetty.security.authentication.BasicAuthenticator;
 import org.eclipse.jetty.security.authentication.FormAuthenticator;
-import org.eclipse.jetty.security.authentication.GoogleAuthenticator;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.util.ajax.JSON;
@@ -108,15 +105,11 @@ public class AuthenticationTest
             session.setAttribute(CSRF_TOKEN_ATTRIBUTE, antiForgeryToken);
         }
 
-        Map<String, String> state = new HashMap<>();
-        state.put("url", "http://localhost:8080/login");
-        state.put("csrf", "ahklfhalfdkjadf");
-
         return authorization_endpoint +
             "?client_id=" + clientId +
             "&redirect_uri=" + redirectUri +
             "&scope=openid%20email" +
-            "&state=" + JSON.toString(state) +
+            "&state=" + antiForgeryToken +
             "&response_type=code";
     }
 

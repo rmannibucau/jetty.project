@@ -41,17 +41,6 @@ public class GoogleAuthTest
             }
         }), "/error");
 
-
-        context.addServlet(new ServletHolder(new DefaultServlet() {
-            @Override
-            protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-                response.getWriter().append("<html><form method='POST' action='/j_security_check'>"
-                    + "<input type='text' name='j_username'/>"
-                    + "<input type='password' name='j_password'/>"
-                    + "<input type='submit' value='Login'/></form></html>");
-            }
-        }), "/login");
-
         Constraint constraint = new Constraint();
         constraint.setName(Constraint.__GOOGLE_AUTH);
         constraint.setRoles(new String[]{"user","admin","moderator"});
@@ -70,7 +59,10 @@ public class GoogleAuthTest
         loginService.setUserStore(userStore);
         securityHandler.setLoginService(loginService);
 
-        Authenticator authenticator = new GoogleAuthenticator("/login", "/error", false);
+        final String clientId = "1051168419525-5nl60mkugb77p9j194mrh287p1e0ahfi.apps.googleusercontent.com";
+        final String clientSecret = "XT_MIsSv_aUCGollauCaJY8S";
+        final String redirectUri = "http://localhost:8080/authenticate";
+        Authenticator authenticator = new GoogleAuthenticator(clientId, clientSecret, redirectUri, "/error", false);
         securityHandler.setAuthenticator(authenticator);
 
         context.setSecurityHandler(securityHandler);

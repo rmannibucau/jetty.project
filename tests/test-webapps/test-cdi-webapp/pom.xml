@@ -8,7 +8,7 @@
 
   <modelVersion>4.0.0</modelVersion>
   <artifactId>test-cdi-webapp</artifactId>
-  <name>Test :: CDI On Jetty :: Included in WebApp</name>
+  <name>Jetty Tests :: WebApps :: CDI in WebApp</name>
   <packaging>war</packaging>
 
   <properties>
@@ -27,10 +27,37 @@
       <scope>provided</scope>
     </dependency>
     <!-- included in webapp -->
-    <dependency>
+    <!--<dependency>
       <groupId>org.jboss.weld.servlet</groupId>
       <artifactId>weld-servlet-core</artifactId>
       <version>${weld.version}</version>
+    </dependency>-->
+    <dependency>
+      <groupId>org.apache.openwebbeans</groupId>
+      <artifactId>openwebbeans-web</artifactId>
+      <version>2.0.11</version>
     </dependency>
+
+    <dependency>
+      <groupId>org.apache.geronimo.specs</groupId>
+      <artifactId>geronimo-annotation_1.3_spec</artifactId>
+      <version>1.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.geronimo.specs</groupId>
+      <artifactId>geronimo-jcdi_2.0_spec</artifactId>
+      <version>1.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.geronimo.specs</groupId>
+      <artifactId>geronimo-atinject_1.0_spec</artifactId>
+      <version>1.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.geronimo.specs</groupId>
+      <artifactId>geronimo-interceptor_1.2_spec</artifactId>
+      <version>1.1</version>
+    </dependency>
+
   </dependencies>
 </project>

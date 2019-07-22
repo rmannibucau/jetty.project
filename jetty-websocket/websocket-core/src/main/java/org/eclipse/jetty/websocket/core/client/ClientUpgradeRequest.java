@@ -290,8 +290,6 @@ public abstract class ClientUpgradeRequest extends HttpRequest implements Respon
 
     private void initWebSocketHeaders()
     {
-        // TODO: verify why we need to call listeners here (too early).
-        // Notify upgrade hooks
         notifyUpgradeListeners((listener) -> listener.onHandshakeRequest(this));
     }
 

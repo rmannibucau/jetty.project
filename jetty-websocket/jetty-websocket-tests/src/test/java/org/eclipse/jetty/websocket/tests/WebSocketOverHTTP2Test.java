@@ -49,6 +49,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class WebSocketOverHTTP2Test
@@ -125,5 +126,7 @@ public class WebSocketOverHTTP2Test
 
         session.close(StatusCode.NORMAL, null);
         assertTrue(wsEndPoint.closeLatch.await(5, TimeUnit.SECONDS));
+        assertEquals(StatusCode.NORMAL, wsEndPoint.statusCode);
+        assertNull(wsEndPoint.error);
     }
 }

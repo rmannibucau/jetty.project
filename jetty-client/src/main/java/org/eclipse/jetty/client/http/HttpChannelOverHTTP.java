@@ -110,7 +110,14 @@ public class HttpChannelOverHTTP extends HttpChannel
             if (upgrader == null)
                 return new Result(result, new HttpResponseException("101 response without " + HttpUpgrader.class.getSimpleName(), response));
 
-            upgrader.upgrade(response, getHttpConnection().getEndPoint());
+            try
+            {
+                upgrader.upgrade(response, getHttpConnection().getEndPoint());
+            }
+            catch (Throwable x)
+            {
+                return new Result(result, new HttpResponseException("Could not upgrade to WebSocket", response, x));
+            }
         }
 
         return result;

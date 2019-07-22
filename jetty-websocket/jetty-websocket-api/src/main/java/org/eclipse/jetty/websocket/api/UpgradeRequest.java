@@ -125,6 +125,7 @@ public interface UpgradeRequest
      * @return the HTTP method used
      */
     String getMethod();
+
     /**
      * The WebSocket Origin of this Upgrade Request
      * <p>
